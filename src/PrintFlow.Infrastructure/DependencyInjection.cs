@@ -28,7 +28,10 @@ public static class DependencyInjection
         services.AddScoped<IInviteCodeRepository, InviteCodeRepository>();
         services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<IFilamentRepository, FilamentRepository>();
+        services.AddScoped<IFilamentBrandRepository, FilamentBrandRepository>();
+        services.AddScoped<IFilamentTypeRepository, FilamentTypeRepository>();
         services.AddScoped<IUserSettingsRepository, UserSettingsRepository>();
+        services.AddScoped<IFeedbackRepository, FeedbackRepository>();
 
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<ITokenService, TokenService>();
@@ -37,7 +40,10 @@ public static class DependencyInjection
         services.AddScoped<IInviteCodeService, InviteCodeService>();
         services.AddScoped<IProductService, ProductService>();
         services.AddScoped<IFilamentService, FilamentService>();
+        services.AddScoped<IFilamentBrandService, FilamentBrandService>();
+        services.AddScoped<IFilamentTypeService, FilamentTypeService>();
         services.AddScoped<ISettingsService, SettingsService>();
+        services.AddScoped<IFeedbackService, FeedbackService>();
 
         services.AddHostedService<InviteCodeExpirationService>();
 

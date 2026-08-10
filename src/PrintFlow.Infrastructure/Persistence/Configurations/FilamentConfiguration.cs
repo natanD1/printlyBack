@@ -16,8 +16,10 @@ public class FilamentConfiguration : IEntityTypeConfiguration<Filament>
             .HasMaxLength(150)
             .IsRequired();
 
-        builder.Property(f => f.Brand)
-            .HasMaxLength(150)
+        builder.Property(f => f.BrandId)
+            .IsRequired();
+
+        builder.Property(f => f.TypeId)
             .IsRequired();
 
         builder.Property(f => f.ColorHex)
@@ -42,5 +44,15 @@ public class FilamentConfiguration : IEntityTypeConfiguration<Filament>
             .WithMany()
             .HasForeignKey(f => f.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne<FilamentBrand>()
+            .WithMany()
+            .HasForeignKey(f => f.BrandId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne<FilamentType>()
+            .WithMany()
+            .HasForeignKey(f => f.TypeId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

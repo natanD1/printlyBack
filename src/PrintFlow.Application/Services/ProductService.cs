@@ -10,17 +10,20 @@ public class ProductService : IProductService
 {
     private readonly IProductRepository _productRepository;
     private readonly IFilamentRepository _filamentRepository;
+    private readonly IFilamentBrandRepository _filamentBrandRepository;
     private readonly IUserSettingsRepository _userSettingsRepository;
     private readonly IUnitOfWork _unitOfWork;
 
     public ProductService(
         IProductRepository productRepository,
         IFilamentRepository filamentRepository,
+        IFilamentBrandRepository filamentBrandRepository,
         IUserSettingsRepository userSettingsRepository,
         IUnitOfWork unitOfWork)
     {
         _productRepository = productRepository;
         _filamentRepository = filamentRepository;
+        _filamentBrandRepository = filamentBrandRepository;
         _userSettingsRepository = userSettingsRepository;
         _unitOfWork = unitOfWork;
     }
@@ -159,20 +162,22 @@ public class ProductService : IProductService
     {
         var filamentIds = products.SelectMany(p => p.Filaments.Select(f => f.FilamentId)).Distinct().ToList();
         var filaments = await GetFilamentsByIdsAsync(filamentIds, userId, cancellationToken);
+        var brandNames = await GetBrandNamesAsync(filaments.Values, cancellationToken);
         var settings = await _userSettingsRepository.GetOrCreateAsync(userId, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return products.Select(p => ToDto(p, filaments, settings)).ToList();
+        return products.Select(p => ToDto(p, filaments, brandNames, settings)).ToList();
     }
 
     private async Task<ProductDto> ToDtoAsync(Product product, Guid userId, CancellationToken cancellationToken)
     {
         var filamentIds = product.Filaments.Select(f => f.FilamentId).Distinct().ToList();
         var filaments = await GetFilamentsByIdsAsync(filamentIds, userId, cancellationToken);
+        var brandNames = await GetBrandNamesAsync(filaments.Values, cancellationToken);
         var settings = await _userSettingsRepository.GetOrCreateAsync(userId, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return ToDto(product, filaments, settings);
+        return ToDto(product, filaments, brandNames, settings);
     }
 
     private async Task<Dictionary<Guid, Filament>> GetFilamentsByIdsAsync(List<Guid> filamentIds, Guid userId, CancellationToken cancellationToken)
@@ -184,14 +189,26 @@ public class ProductService : IProductService
         return filaments.ToDictionary(f => f.Id);
     }
 
-    private static ProductDto ToDto(Product product, Dictionary<Guid, Filament> filaments, UserSettings settings)
+    private async Task<Dictionary<Guid, string>> GetBrandNamesAsync(IEnumerable<Filament> filaments, CancellationToken cancellationToken)
+    {
+        var brandIds = filaments.Select(f => f.BrandId).Distinct().ToList();
+
+        if (brandIds.Count == 0)
+            return new Dictionary<Guid, string>();
+
+        var brands = await _filamentBrandRepository.GetAllAsync(cancellationToken);
+        return brands.Where(b => brandIds.Contains(b.Id)).ToDictionary(b => b.Id, b => b.NameBrand);
+    }
+
+    private static ProductDto ToDto(Product product, Dictionary<Guid, Filament> filaments, Dictionary<Guid, string> brandNames, UserSettings settings)
     {
         var productFilaments = product.Filaments
             .Where(pf => filaments.ContainsKey(pf.FilamentId))
             .Select(pf =>
             {
                 var filament = filaments[pf.FilamentId];
-                return new ProductFilamentDto(filament.Id, filament.Name, filament.Brand, filament.ColorHex, pf.GramsUsed);
+                var brandName = brandNames.GetValueOrDefault(filament.BrandId, string.Empty);
+                return new ProductFilamentDto(filament.Id, filament.Name, brandName, filament.ColorHex, pf.GramsUsed);
             })
             .ToList();
 

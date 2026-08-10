@@ -6,7 +6,8 @@ namespace PrintFlow.Domain.Entities;
 public partial class Filament : BaseEntity
 {
     public string Name { get; private set; } = default!;
-    public string Brand { get; private set; } = default!;
+    public Guid BrandId { get; private set; }
+    public Guid TypeId { get; private set; }
     public string ColorHex { get; private set; } = default!;
     public decimal Weight { get; private set; }
     public decimal FilamentPrice { get; private set; }
@@ -16,24 +17,26 @@ public partial class Filament : BaseEntity
     {
     }
 
-    public Filament(string name, string brand, string colorHex, decimal weight, decimal filamentPrice, Guid userId)
+    public Filament(string name, Guid brandId, Guid typeId, string colorHex, decimal weight, decimal filamentPrice, Guid userId)
     {
-        Validate(name, brand, colorHex, weight, filamentPrice);
+        Validate(name, colorHex, weight, filamentPrice);
 
         Name = name.Trim();
-        Brand = brand.Trim();
+        BrandId = brandId;
+        TypeId = typeId;
         ColorHex = colorHex.Trim();
         Weight = weight;
         FilamentPrice = filamentPrice;
         UserId = userId;
     }
 
-    public void Update(string name, string brand, string colorHex, decimal weight, decimal filamentPrice)
+    public void Update(string name, Guid brandId, Guid typeId, string colorHex, decimal weight, decimal filamentPrice)
     {
-        Validate(name, brand, colorHex, weight, filamentPrice);
+        Validate(name, colorHex, weight, filamentPrice);
 
         Name = name.Trim();
-        Brand = brand.Trim();
+        BrandId = brandId;
+        TypeId = typeId;
         ColorHex = colorHex.Trim();
         Weight = weight;
         FilamentPrice = filamentPrice;
@@ -61,13 +64,10 @@ public partial class Filament : BaseEntity
         MarkAsUpdated();
     }
 
-    private static void Validate(string name, string brand, string colorHex, decimal weight, decimal filamentPrice)
+    private static void Validate(string name, string colorHex, decimal weight, decimal filamentPrice)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new DomainException("Nome do filamento e obrigatorio.");
-
-        if (string.IsNullOrWhiteSpace(brand))
-            throw new DomainException("Marca do filamento e obrigatoria.");
 
         if (string.IsNullOrWhiteSpace(colorHex) || !ColorHexRegex().IsMatch(colorHex.Trim()))
             throw new DomainException("Cor do filamento deve estar no formato hexadecimal (ex: #FFAA00).");

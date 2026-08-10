@@ -6,7 +6,7 @@ public class Product : BaseEntity
 {
     private readonly List<ProductFilament> _filaments = new();
 
-    public string ProductName { get; private set; } = default!;
+    public string ProductName { get; private set; } = null!;
     public string? ProductPhoto { get; private set; }
     public decimal TotalHours { get; private set; }
     public decimal TotalFilament { get; private set; }
