@@ -1,0 +1,18 @@
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost;Port=3306;Database=printly_db;User=root;Password=CHANGE_ME;"
+  },
+  "Jwt": {
+    "Secret": "CHANGE_ME_min_32_chars",
+    "Issuer": "Printly.WebApi",
+    "Audience": "Printly.Client",
+    "ExpirationMinutes": 60
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*"
+}

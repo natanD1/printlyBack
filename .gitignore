@@ -13,3 +13,4 @@ appsettings.json
 appsettings.*.json
 !appsettings.Development.json
 !appsettings.*.example.json
+.DS_Store
