@@ -30,6 +30,10 @@ public class FilamentConfiguration : IEntityTypeConfiguration<Filament>
             .HasColumnType("decimal(10,3)")
             .IsRequired();
 
+        builder.Property(f => f.InitialWeight)
+            .HasColumnType("decimal(10,3)")
+            .IsRequired();
+
         builder.Property(f => f.FilamentPrice)
             .HasColumnType("decimal(10,2)")
             .IsRequired();

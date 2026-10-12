@@ -10,6 +10,7 @@ public partial class Filament : BaseEntity
     public Guid TypeId { get; private set; }
     public string ColorHex { get; private set; } = default!;
     public decimal Weight { get; private set; }
+    public decimal InitialWeight { get; private set; }
     public decimal FilamentPrice { get; private set; }
     public Guid UserId { get; private set; }
 
@@ -26,6 +27,7 @@ public partial class Filament : BaseEntity
         TypeId = typeId;
         ColorHex = colorHex.Trim();
         Weight = weight;
+        InitialWeight = weight;
         FilamentPrice = filamentPrice;
         UserId = userId;
     }

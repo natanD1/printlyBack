@@ -122,6 +122,7 @@ public class FilamentService : IFilamentService
         ToTypeDto(type),
         filament.ColorHex,
         filament.Weight,
+        filament.InitialWeight,
         filament.FilamentPrice,
         filament.CreatedAt,
         filament.UpdatedAt);
