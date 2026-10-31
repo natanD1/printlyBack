@@ -5,5 +5,12 @@ public record SettingsDto(
     decimal KwhPrice,
     decimal AveragePowerWatts,
     decimal DefaultProfitMarginPercentage,
+    decimal PrinterValue,
+    decimal PrinterLifespanHours,
+    decimal MaintenancePercentage,
+    decimal FailureRatePercentage,
+    bool DepreciationEnabled,
+    bool MaintenanceEnabled,
+    bool FailureEnabled,
     DateTime CreatedAt,
     DateTime? UpdatedAt);

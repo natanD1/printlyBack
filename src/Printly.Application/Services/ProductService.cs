@@ -42,10 +42,10 @@ public class ProductService : IProductService
 
     public async Task<ProductDto> CreateAsync(CreateProductRequest request, Guid userId, CancellationToken cancellationToken = default)
     {
-        var product = new Product(request.ProductName, request.ProductPhotoBase64, request.TotalHours, userId);
+        var product = new Product(request.ProductName, request.ProductPhotoBase64, request.TotalHours, request.Quantity, userId);
 
         var ownedFilaments = await ValidateAndBuildFilamentsAsync(request.Filaments, userId, cancellationToken);
-        DeductStockOrThrow(ownedFilaments, request.Filaments);
+        DeductStockOrThrow(ownedFilaments, request.Filaments, request.Quantity);
         product.SetFilaments(request.Filaments.Select(f => (f.FilamentId, f.GramsUsed)));
 
         await ApplyPricingAsync(product, ownedFilaments, request.SalePriceOverride, userId, cancellationToken);
@@ -64,20 +64,26 @@ public class ProductService : IProductService
             ? product.ProductPhoto
             : request.ProductPhotoBase64;
 
-        product.Update(request.ProductName, productPhoto, request.TotalHours);
+        var oldQuantity = product.Quantity;
+        product.Update(request.ProductName, productPhoto, request.TotalHours, request.Quantity);
 
-        if (request.Filaments is not null)
+        if (request.Filaments is not null || request.Quantity != oldQuantity)
         {
             var oldFilamentIds = product.Filaments.Select(pf => pf.FilamentId).Distinct().ToList();
             var oldFilaments = await GetFilamentsByIdsAsync(oldFilamentIds, userId, cancellationToken);
 
             foreach (var oldLink in product.Filaments)
                 if (oldFilaments.TryGetValue(oldLink.FilamentId, out var oldFilament))
-                    oldFilament.RestoreStock(oldLink.GramsUsed / 1000m);
+                    oldFilament.RestoreStock(oldLink.GramsUsed * oldQuantity / 1000m);
 
-            var ownedFilaments = await ValidateAndBuildFilamentsAsync(request.Filaments, userId, cancellationToken);
-            DeductStockOrThrow(ownedFilaments, request.Filaments);
-            product.SetFilaments(request.Filaments.Select(f => (f.FilamentId, f.GramsUsed)));
+            var newFilaments = request.Filaments
+                ?? product.Filaments.Select(pf => new ProductFilamentRequest(pf.FilamentId, pf.GramsUsed)).ToList();
+
+            var ownedFilaments = await ValidateAndBuildFilamentsAsync(newFilaments, userId, cancellationToken);
+            DeductStockOrThrow(ownedFilaments, newFilaments, request.Quantity);
+
+            if (request.Filaments is not null)
+                product.SetFilaments(request.Filaments.Select(f => (f.FilamentId, f.GramsUsed)));
         }
 
         var currentFilamentIds = product.Filaments.Select(pf => pf.FilamentId).Distinct().ToList();
@@ -107,30 +113,34 @@ public class ProductService : IProductService
     {
         var settings = await _userSettingsRepository.GetOrCreateAsync(userId, cancellationToken);
 
-        var filamentCost = product.Filaments
+        var filaments = product.Filaments
             .Where(pf => filamentsById.ContainsKey(pf.FilamentId))
-            .Sum(pf => (pf.GramsUsed / 1000m) * filamentsById[pf.FilamentId].FilamentPrice);
+            .Select(pf => (pf.GramsUsed, filamentsById[pf.FilamentId].FilamentPrice));
 
-        var energyCost = product.TotalHours * (settings.AveragePowerWatts / 1000m) * settings.KwhPrice;
-        var costPrice = filamentCost + energyCost;
-        var suggestedSalePrice = costPrice * (1 + (settings.DefaultProfitMarginPercentage / 100m));
+        var costPrice = ProductPricingCalculator.CalculateCost(filaments, product.TotalHours, product.Quantity, settings);
+        var salePrice = salePriceOverride is { } unitPrice
+            ? unitPrice * product.Quantity
+            : ProductPricingCalculator.SuggestSalePrice(costPrice, settings);
 
-        product.SetPricing(costPrice, salePriceOverride ?? suggestedSalePrice);
+        product.SetPricing(costPrice, salePrice);
     }
 
-    private static void DeductStockOrThrow(Dictionary<Guid, Filament> filamentsById, List<ProductFilamentRequest> filaments)
+    private static void DeductStockOrThrow(Dictionary<Guid, Filament> filamentsById, List<ProductFilamentRequest> filaments, int quantity)
     {
         foreach (var item in filaments)
         {
             var filament = filamentsById[item.FilamentId];
-            var kilograms = item.GramsUsed / 1000m;
+            var gramsNeeded = item.GramsUsed * quantity;
 
-            if (filament.Weight < kilograms)
-                throw new DomainException($"Estoque insuficiente de '{filament.Name}': disponivel {filament.Weight * 1000}g, necessario {item.GramsUsed}g.");
+            if (filament.Weight < gramsNeeded / 1000m)
+            {
+                var breakdown = quantity > 1 ? $" ({item.GramsUsed:0.##}g x {quantity} un)" : string.Empty;
+                throw new DomainException($"Estoque insuficiente de '{filament.Name}': disponivel {filament.Weight * 1000:0.##}g, necessario {gramsNeeded:0.##}g{breakdown}.");
+            }
         }
 
         foreach (var item in filaments)
-            filamentsById[item.FilamentId].DeductStock(item.GramsUsed / 1000m);
+            filamentsById[item.FilamentId].DeductStock(item.GramsUsed * quantity / 1000m);
     }
 
     private async Task<Dictionary<Guid, Filament>> ValidateAndBuildFilamentsAsync(List<ProductFilamentRequest> filaments, Guid userId, CancellationToken cancellationToken)
@@ -212,16 +222,18 @@ public class ProductService : IProductService
             })
             .ToList();
 
-        var suggestedSalePrice = product.CostPrice * (1 + (settings.DefaultProfitMarginPercentage / 100m));
+        var suggestedSalePrice = ProductPricingCalculator.SuggestSalePrice(product.CostPrice, settings);
 
         return new ProductDto(
             product.Id,
             product.ProductName,
             product.ProductPhoto,
             product.TotalHours,
+            product.Quantity,
             product.TotalFilament,
             product.CostPrice,
             product.SalePrice,
+            product.SalePrice / product.Quantity,
             suggestedSalePrice,
             productFilaments,
             product.CreatedAt,

@@ -9,6 +9,7 @@ public class Product : BaseEntity
     public string ProductName { get; private set; } = null!;
     public string? ProductPhoto { get; private set; }
     public decimal TotalHours { get; private set; }
+    public int Quantity { get; private set; } = 1;
     public decimal TotalFilament { get; private set; }
     public decimal CostPrice { get; private set; }
     public decimal SalePrice { get; private set; }
@@ -19,23 +20,25 @@ public class Product : BaseEntity
     {
     }
 
-    public Product(string productName, string? productPhoto, decimal totalHours, Guid userId)
+    public Product(string productName, string? productPhoto, decimal totalHours, int quantity, Guid userId)
     {
-        Validate(productName, totalHours);
+        Validate(productName, totalHours, quantity);
 
         ProductName = productName.Trim();
         ProductPhoto = productPhoto;
         TotalHours = totalHours;
+        Quantity = quantity;
         UserId = userId;
     }
 
-    public void Update(string productName, string? productPhoto, decimal totalHours)
+    public void Update(string productName, string? productPhoto, decimal totalHours, int quantity)
     {
-        Validate(productName, totalHours);
+        Validate(productName, totalHours, quantity);
 
         ProductName = productName.Trim();
         ProductPhoto = productPhoto;
         TotalHours = totalHours;
+        Quantity = quantity;
         MarkAsUpdated();
     }
 
@@ -64,12 +67,15 @@ public class Product : BaseEntity
         MarkAsUpdated();
     }
 
-    private static void Validate(string productName, decimal totalHours)
+    private static void Validate(string productName, decimal totalHours, int quantity)
     {
         if (string.IsNullOrWhiteSpace(productName))
             throw new DomainException("Nome do produto e obrigatorio.");
 
         if (totalHours < 0)
             throw new DomainException("Total de horas nao pode ser negativo.");
+
+        if (quantity < 1)
+            throw new DomainException("Quantidade deve ser no minimo 1.");
     }
 }

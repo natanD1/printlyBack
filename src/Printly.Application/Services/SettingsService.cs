@@ -28,7 +28,17 @@ public class SettingsService : ISettingsService
     {
         var settings = await _userSettingsRepository.GetOrCreateAsync(userId, cancellationToken);
 
-        settings.Update(request.KwhPrice, request.AveragePowerWatts, request.DefaultProfitMarginPercentage);
+        settings.Update(
+            request.KwhPrice,
+            request.AveragePowerWatts,
+            request.DefaultProfitMarginPercentage,
+            request.PrinterValue,
+            request.PrinterLifespanHours,
+            request.MaintenancePercentage,
+            request.FailureRatePercentage,
+            request.DepreciationEnabled,
+            request.MaintenanceEnabled,
+            request.FailureEnabled);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -40,6 +50,13 @@ public class SettingsService : ISettingsService
         settings.KwhPrice,
         settings.AveragePowerWatts,
         settings.DefaultProfitMarginPercentage,
+        settings.PrinterValue,
+        settings.PrinterLifespanHours,
+        settings.MaintenancePercentage,
+        settings.FailureRatePercentage,
+        settings.DepreciationEnabled,
+        settings.MaintenanceEnabled,
+        settings.FailureEnabled,
         settings.CreatedAt,
         settings.UpdatedAt);
 }

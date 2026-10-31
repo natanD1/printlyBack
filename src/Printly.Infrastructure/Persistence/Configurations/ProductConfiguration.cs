@@ -23,6 +23,10 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
             .HasColumnType("decimal(10,2)")
             .IsRequired();
 
+        builder.Property(p => p.Quantity)
+            .HasDefaultValue(1)
+            .IsRequired();
+
         builder.Property(p => p.TotalFilament)
             .HasColumnType("decimal(10,2)")
             .IsRequired();

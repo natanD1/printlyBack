@@ -227,6 +227,11 @@ namespace Printly.Infrastructure.Persistence.Migrations
                     b.Property<string>("ProductPhoto")
                         .HasColumnType("longtext");
 
+                    b.Property<int>("Quantity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.Property<decimal>("SalePrice")
                         .HasColumnType("decimal(10,2)");
 
@@ -323,8 +328,43 @@ namespace Printly.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("DefaultProfitMarginPercentage")
                         .HasColumnType("decimal(10,2)");
 
+                    b.Property<bool>("DepreciationEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("FailureEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(false);
+
+                    b.Property<decimal>("FailureRatePercentage")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(10,2)")
+                        .HasDefaultValue(5m);
+
                     b.Property<decimal>("KwhPrice")
                         .HasColumnType("decimal(10,2)");
+
+                    b.Property<bool>("MaintenanceEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(false);
+
+                    b.Property<decimal>("MaintenancePercentage")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(10,2)")
+                        .HasDefaultValue(10m);
+
+                    b.Property<decimal>("PrinterLifespanHours")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(10,2)")
+                        .HasDefaultValue(2000m);
+
+                    b.Property<decimal>("PrinterValue")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(10,2)")
+                        .HasDefaultValue(0m);
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
