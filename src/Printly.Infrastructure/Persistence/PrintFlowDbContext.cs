@@ -18,6 +18,9 @@ public class PrintlyDbContext : DbContext
     public DbSet<ProductFilament> ProductFilaments => Set<ProductFilament>();
     public DbSet<UserSettings> UserSettings => Set<UserSettings>();
     public DbSet<Feedback> Feedbacks => Set<Feedback>();
+    public DbSet<PrinterBrand> PrinterBrands => Set<PrinterBrand>();
+    public DbSet<PrinterModel> PrinterModels => Set<PrinterModel>();
+    public DbSet<Printer> Printers => Set<Printer>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

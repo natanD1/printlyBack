@@ -7,6 +7,7 @@ public class UpdateProductForm
     public decimal TotalHours { get; set; }
     public int Quantity { get; set; } = 1;
     public int PiecesPerPrint { get; set; } = 1;
+    public Guid? PrinterId { get; set; }
     public decimal? SalePriceOverride { get; set; }
     public List<ProductFilamentFormItem> Filaments { get; set; } = new();
 }

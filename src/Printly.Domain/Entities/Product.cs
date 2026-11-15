@@ -14,6 +14,10 @@ public class Product : BaseEntity
     public decimal TotalFilament { get; private set; }
     public decimal CostPrice { get; private set; }
     public decimal SalePrice { get; private set; }
+
+    /// <summary>Impressora usada no calculo de custo. Nulo so em produtos anteriores ao modulo de impressoras.</summary>
+    public Guid? PrinterId { get; private set; }
+
     public Guid UserId { get; private set; }
     public IReadOnlyCollection<ProductFilament> Filaments => _filaments.AsReadOnly();
 
@@ -26,7 +30,7 @@ public class Product : BaseEntity
     {
     }
 
-    public Product(string productName, string? productPhoto, decimal totalHours, int quantity, int piecesPerPrint, Guid userId)
+    public Product(string productName, string? productPhoto, decimal totalHours, int quantity, int piecesPerPrint, Guid printerId, Guid userId)
     {
         Validate(productName, totalHours, quantity, piecesPerPrint);
 
@@ -35,10 +39,11 @@ public class Product : BaseEntity
         TotalHours = totalHours;
         Quantity = quantity;
         PiecesPerPrint = piecesPerPrint;
+        PrinterId = printerId;
         UserId = userId;
     }
 
-    public void Update(string productName, string? productPhoto, decimal totalHours, int quantity, int piecesPerPrint)
+    public void Update(string productName, string? productPhoto, decimal totalHours, int quantity, int piecesPerPrint, Guid printerId)
     {
         Validate(productName, totalHours, quantity, piecesPerPrint);
 
@@ -47,6 +52,7 @@ public class Product : BaseEntity
         TotalHours = totalHours;
         Quantity = quantity;
         PiecesPerPrint = piecesPerPrint;
+        PrinterId = printerId;
         MarkAsUpdated();
     }
 
