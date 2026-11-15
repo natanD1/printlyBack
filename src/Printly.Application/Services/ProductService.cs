@@ -42,10 +42,10 @@ public class ProductService : IProductService
 
     public async Task<ProductDto> CreateAsync(CreateProductRequest request, Guid userId, CancellationToken cancellationToken = default)
     {
-        var product = new Product(request.ProductName, request.ProductPhotoBase64, request.TotalHours, request.Quantity, userId);
+        var product = new Product(request.ProductName, request.ProductPhotoBase64, request.TotalHours, request.Quantity, request.PiecesPerPrint, userId);
 
         var ownedFilaments = await ValidateAndBuildFilamentsAsync(request.Filaments, userId, cancellationToken);
-        DeductStockOrThrow(ownedFilaments, request.Filaments, request.Quantity);
+        DeductStockOrThrow(ownedFilaments, request.Filaments, product.PrintRuns);
         product.SetFilaments(request.Filaments.Select(f => (f.FilamentId, f.GramsUsed)));
 
         await ApplyPricingAsync(product, ownedFilaments, request.SalePriceOverride, userId, cancellationToken);
@@ -64,23 +64,23 @@ public class ProductService : IProductService
             ? product.ProductPhoto
             : request.ProductPhotoBase64;
 
-        var oldQuantity = product.Quantity;
-        product.Update(request.ProductName, productPhoto, request.TotalHours, request.Quantity);
+        var oldPrintRuns = product.PrintRuns;
+        product.Update(request.ProductName, productPhoto, request.TotalHours, request.Quantity, request.PiecesPerPrint);
 
-        if (request.Filaments is not null || request.Quantity != oldQuantity)
+        if (request.Filaments is not null || product.PrintRuns != oldPrintRuns)
         {
             var oldFilamentIds = product.Filaments.Select(pf => pf.FilamentId).Distinct().ToList();
             var oldFilaments = await GetFilamentsByIdsAsync(oldFilamentIds, userId, cancellationToken);
 
             foreach (var oldLink in product.Filaments)
                 if (oldFilaments.TryGetValue(oldLink.FilamentId, out var oldFilament))
-                    oldFilament.RestoreStock(oldLink.GramsUsed * oldQuantity / 1000m);
+                    oldFilament.RestoreStock(oldLink.GramsUsed * oldPrintRuns / 1000m);
 
             var newFilaments = request.Filaments
                 ?? product.Filaments.Select(pf => new ProductFilamentRequest(pf.FilamentId, pf.GramsUsed)).ToList();
 
             var ownedFilaments = await ValidateAndBuildFilamentsAsync(newFilaments, userId, cancellationToken);
-            DeductStockOrThrow(ownedFilaments, newFilaments, request.Quantity);
+            DeductStockOrThrow(ownedFilaments, newFilaments, product.PrintRuns);
 
             if (request.Filaments is not null)
                 product.SetFilaments(request.Filaments.Select(f => (f.FilamentId, f.GramsUsed)));
@@ -117,7 +117,7 @@ public class ProductService : IProductService
             .Where(pf => filamentsById.ContainsKey(pf.FilamentId))
             .Select(pf => (pf.GramsUsed, filamentsById[pf.FilamentId].FilamentPrice));
 
-        var costPrice = ProductPricingCalculator.CalculateCost(filaments, product.TotalHours, product.Quantity, settings);
+        var costPrice = ProductPricingCalculator.CalculateCost(filaments, product.TotalHours, product.PrintRuns, settings);
         var salePrice = salePriceOverride is { } unitPrice
             ? unitPrice * product.Quantity
             : ProductPricingCalculator.SuggestSalePrice(costPrice, settings);
@@ -125,22 +125,22 @@ public class ProductService : IProductService
         product.SetPricing(costPrice, salePrice);
     }
 
-    private static void DeductStockOrThrow(Dictionary<Guid, Filament> filamentsById, List<ProductFilamentRequest> filaments, int quantity)
+    private static void DeductStockOrThrow(Dictionary<Guid, Filament> filamentsById, List<ProductFilamentRequest> filaments, decimal printRuns)
     {
         foreach (var item in filaments)
         {
             var filament = filamentsById[item.FilamentId];
-            var gramsNeeded = item.GramsUsed * quantity;
+            var gramsNeeded = item.GramsUsed * printRuns;
 
             if (filament.Weight < gramsNeeded / 1000m)
             {
-                var breakdown = quantity > 1 ? $" ({item.GramsUsed:0.##}g x {quantity} un)" : string.Empty;
+                var breakdown = printRuns != 1m ? $" ({item.GramsUsed:0.##}g x {printRuns:0.##} impressoes)" : string.Empty;
                 throw new DomainException($"Estoque insuficiente de '{filament.Name}': disponivel {filament.Weight * 1000:0.##}g, necessario {gramsNeeded:0.##}g{breakdown}.");
             }
         }
 
         foreach (var item in filaments)
-            filamentsById[item.FilamentId].DeductStock(item.GramsUsed * quantity / 1000m);
+            filamentsById[item.FilamentId].DeductStock(item.GramsUsed * printRuns / 1000m);
     }
 
     private async Task<Dictionary<Guid, Filament>> ValidateAndBuildFilamentsAsync(List<ProductFilamentRequest> filaments, Guid userId, CancellationToken cancellationToken)
@@ -230,7 +230,10 @@ public class ProductService : IProductService
             product.ProductPhoto,
             product.TotalHours,
             product.Quantity,
+            product.PiecesPerPrint,
+            product.TotalHours * product.PrintRuns,
             product.TotalFilament,
+            product.TotalFilament * product.PrintRuns,
             product.CostPrice,
             product.SalePrice,
             product.SalePrice / product.Quantity,

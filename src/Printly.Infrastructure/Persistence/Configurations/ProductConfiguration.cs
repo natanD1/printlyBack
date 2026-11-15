@@ -27,6 +27,12 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
             .HasDefaultValue(1)
             .IsRequired();
 
+        builder.Property(p => p.PiecesPerPrint)
+            .HasDefaultValue(1)
+            .IsRequired();
+
+        builder.Ignore(p => p.PrintRuns);
+
         builder.Property(p => p.TotalFilament)
             .HasColumnType("decimal(10,2)")
             .IsRequired();

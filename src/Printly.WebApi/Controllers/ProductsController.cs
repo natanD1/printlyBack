@@ -43,6 +43,7 @@ public class ProductsController : ControllerBase
             productPhotoBase64,
             form.TotalHours,
             form.Quantity,
+            form.PiecesPerPrint,
             form.SalePriceOverride,
             ToFilamentRequests(form.Filaments));
 
@@ -63,6 +64,7 @@ public class ProductsController : ControllerBase
             productPhotoBase64,
             form.TotalHours,
             form.Quantity,
+            form.PiecesPerPrint,
             form.SalePriceOverride,
             filaments);
 

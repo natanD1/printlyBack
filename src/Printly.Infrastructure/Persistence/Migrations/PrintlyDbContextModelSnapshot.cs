@@ -219,6 +219,11 @@ namespace Printly.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<int>("PiecesPerPrint")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.Property<string>("ProductName")
                         .IsRequired()
                         .HasMaxLength(150)

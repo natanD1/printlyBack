@@ -5,5 +5,6 @@ public record UpdateProductRequest(
     string? ProductPhotoBase64,
     decimal TotalHours,
     int Quantity,
+    int PiecesPerPrint,
     decimal? SalePriceOverride,
     List<ProductFilamentRequest>? Filaments);
