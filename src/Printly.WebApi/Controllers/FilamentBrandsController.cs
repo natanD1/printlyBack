@@ -6,9 +6,10 @@ using Printly.WebApi.Models.FilamentBrands;
 
 namespace Printly.WebApi.Controllers;
 
+/// <summary>Leitura pra qualquer usuario logado (cadastro de filamento usa a lista), escrita so admin.</summary>
 [ApiController]
 [Route("filaments-brands")]
-[Authorize(Roles = "Admin")]
+[Authorize]
 public class FilamentBrandsController : ControllerBase
 {
     private readonly IFilamentBrandService _filamentBrandService;
@@ -26,6 +27,7 @@ public class FilamentBrandsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<FilamentBrandDto>> Create([FromForm] CreateFilamentBrandForm form, CancellationToken cancellationToken)
     {
         var imageBrandBase64 = await ToBase64Async(form.ImageBrand, cancellationToken);
@@ -37,6 +39,7 @@ public class FilamentBrandsController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<FilamentBrandDto>> Update(Guid id, [FromForm] UpdateFilamentBrandForm form, CancellationToken cancellationToken)
     {
         var imageBrandBase64 = await ToBase64Async(form.ImageBrand, cancellationToken);

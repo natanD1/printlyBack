@@ -5,9 +5,10 @@ using Printly.Application.Interfaces;
 
 namespace Printly.WebApi.Controllers;
 
+/// <summary>Leitura pra qualquer usuario logado (cadastro de filamento usa a lista), escrita so admin.</summary>
 [ApiController]
 [Route("filaments-type")]
-[Authorize(Roles = "Admin")]
+[Authorize]
 public class FilamentTypesController : ControllerBase
 {
     private readonly IFilamentTypeService _filamentTypeService;
@@ -25,6 +26,7 @@ public class FilamentTypesController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<FilamentTypeDto>> Create(CreateFilamentTypeRequest request, CancellationToken cancellationToken)
     {
         var filamentType = await _filamentTypeService.CreateAsync(request, cancellationToken);
@@ -32,6 +34,7 @@ public class FilamentTypesController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<FilamentTypeDto>> Update(Guid id, UpdateFilamentTypeRequest request, CancellationToken cancellationToken)
     {
         var filamentType = await _filamentTypeService.UpdateAsync(id, request, cancellationToken);
