@@ -20,9 +20,13 @@ public class ProductsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<ProductDto>>> GetAll(CancellationToken cancellationToken)
+    public async Task<ActionResult<List<ProductDto>>> GetAll(
+        [FromQuery] DateTimeOffset? from,
+        [FromQuery] DateTimeOffset? to,
+        CancellationToken cancellationToken)
     {
-        var products = await _productService.GetAllAsync(GetUserId(), cancellationToken);
+        // DateTimeOffset preserva o instante enviado (ISO com Z); DateTime seria convertido pro fuso do servidor.
+        var products = await _productService.GetAllAsync(GetUserId(), from?.UtcDateTime, to?.UtcDateTime, cancellationToken);
         return Ok(products);
     }
 
@@ -43,6 +47,7 @@ public class ProductsController : ControllerBase
             productPhotoBase64,
             form.TotalHours,
             form.Quantity,
+            form.PiecesPerPrint,
             form.SalePriceOverride,
             ToFilamentRequests(form.Filaments));
 
@@ -63,6 +68,7 @@ public class ProductsController : ControllerBase
             productPhotoBase64,
             form.TotalHours,
             form.Quantity,
+            form.PiecesPerPrint,
             form.SalePriceOverride,
             filaments);
 

@@ -10,35 +10,43 @@ public class Product : BaseEntity
     public string? ProductPhoto { get; private set; }
     public decimal TotalHours { get; private set; }
     public int Quantity { get; private set; } = 1;
+    public int PiecesPerPrint { get; private set; } = 1;
     public decimal TotalFilament { get; private set; }
     public decimal CostPrice { get; private set; }
     public decimal SalePrice { get; private set; }
     public Guid UserId { get; private set; }
     public IReadOnlyCollection<ProductFilament> Filaments => _filaments.AsReadOnly();
 
+    /// <summary>
+    /// Quantas impressoes o lote exige (proporcional, sem arredondar). Horas e gramas sao por impressao.
+    /// </summary>
+    public decimal PrintRuns => (decimal)Quantity / PiecesPerPrint;
+
     protected Product()
     {
     }
 
-    public Product(string productName, string? productPhoto, decimal totalHours, int quantity, Guid userId)
+    public Product(string productName, string? productPhoto, decimal totalHours, int quantity, int piecesPerPrint, Guid userId)
     {
-        Validate(productName, totalHours, quantity);
+        Validate(productName, totalHours, quantity, piecesPerPrint);
 
         ProductName = productName.Trim();
         ProductPhoto = productPhoto;
         TotalHours = totalHours;
         Quantity = quantity;
+        PiecesPerPrint = piecesPerPrint;
         UserId = userId;
     }
 
-    public void Update(string productName, string? productPhoto, decimal totalHours, int quantity)
+    public void Update(string productName, string? productPhoto, decimal totalHours, int quantity, int piecesPerPrint)
     {
-        Validate(productName, totalHours, quantity);
+        Validate(productName, totalHours, quantity, piecesPerPrint);
 
         ProductName = productName.Trim();
         ProductPhoto = productPhoto;
         TotalHours = totalHours;
         Quantity = quantity;
+        PiecesPerPrint = piecesPerPrint;
         MarkAsUpdated();
     }
 
@@ -67,7 +75,7 @@ public class Product : BaseEntity
         MarkAsUpdated();
     }
 
-    private static void Validate(string productName, decimal totalHours, int quantity)
+    private static void Validate(string productName, decimal totalHours, int quantity, int piecesPerPrint)
     {
         if (string.IsNullOrWhiteSpace(productName))
             throw new DomainException("Nome do produto e obrigatorio.");
@@ -77,5 +85,8 @@ public class Product : BaseEntity
 
         if (quantity < 1)
             throw new DomainException("Quantidade deve ser no minimo 1.");
+
+        if (piecesPerPrint < 1)
+            throw new DomainException("Pecas por impressao deve ser no minimo 1.");
     }
 }

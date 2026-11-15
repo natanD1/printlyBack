@@ -6,6 +6,7 @@ public class UpdateProductForm
     public IFormFile? ProductPhoto { get; set; }
     public decimal TotalHours { get; set; }
     public int Quantity { get; set; } = 1;
+    public int PiecesPerPrint { get; set; } = 1;
     public decimal? SalePriceOverride { get; set; }
     public List<ProductFilamentFormItem> Filaments { get; set; } = new();
 }
