@@ -28,9 +28,12 @@ public class ProductService : IProductService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<List<ProductDto>> GetAllAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<List<ProductDto>> GetAllAsync(Guid userId, DateTime? from = null, DateTime? to = null, CancellationToken cancellationToken = default)
     {
-        var products = await _productRepository.GetAllByUserIdAsync(userId, cancellationToken);
+        if (from is { } start && to is { } end && start >= end)
+            throw new DomainException("Periodo invalido: a data inicial deve ser anterior a final.");
+
+        var products = await _productRepository.GetAllByUserIdAsync(userId, from, to, cancellationToken);
         return await ToDtosAsync(products, userId, cancellationToken);
     }
 
