@@ -12,6 +12,9 @@ public class ProductService : IProductService
     private readonly IFilamentRepository _filamentRepository;
     private readonly IFilamentBrandRepository _filamentBrandRepository;
     private readonly IUserSettingsRepository _userSettingsRepository;
+    private readonly IPrinterRepository _printerRepository;
+    private readonly IPrinterModelRepository _printerModelRepository;
+    private readonly IPrinterBrandRepository _printerBrandRepository;
     private readonly IUnitOfWork _unitOfWork;
 
     public ProductService(
@@ -19,12 +22,18 @@ public class ProductService : IProductService
         IFilamentRepository filamentRepository,
         IFilamentBrandRepository filamentBrandRepository,
         IUserSettingsRepository userSettingsRepository,
+        IPrinterRepository printerRepository,
+        IPrinterModelRepository printerModelRepository,
+        IPrinterBrandRepository printerBrandRepository,
         IUnitOfWork unitOfWork)
     {
         _productRepository = productRepository;
         _filamentRepository = filamentRepository;
         _filamentBrandRepository = filamentBrandRepository;
         _userSettingsRepository = userSettingsRepository;
+        _printerRepository = printerRepository;
+        _printerModelRepository = printerModelRepository;
+        _printerBrandRepository = printerBrandRepository;
         _unitOfWork = unitOfWork;
     }
 
@@ -45,13 +54,14 @@ public class ProductService : IProductService
 
     public async Task<ProductDto> CreateAsync(CreateProductRequest request, Guid userId, CancellationToken cancellationToken = default)
     {
-        var product = new Product(request.ProductName, request.ProductPhotoBase64, request.TotalHours, request.Quantity, request.PiecesPerPrint, userId);
+        var printer = await GetOwnedPrinterAsync(request.PrinterId, userId, cancellationToken);
+        var product = new Product(request.ProductName, request.ProductPhotoBase64, request.TotalHours, request.Quantity, request.PiecesPerPrint, printer.Id, userId);
 
         var ownedFilaments = await ValidateAndBuildFilamentsAsync(request.Filaments, userId, cancellationToken);
         DeductStockOrThrow(ownedFilaments, request.Filaments, product.PrintRuns);
         product.SetFilaments(request.Filaments.Select(f => (f.FilamentId, f.GramsUsed)));
 
-        await ApplyPricingAsync(product, ownedFilaments, request.SalePriceOverride, userId, cancellationToken);
+        await ApplyPricingAsync(product, ownedFilaments, printer, request.SalePriceOverride, userId, cancellationToken);
 
         await _productRepository.AddAsync(product, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -62,13 +72,14 @@ public class ProductService : IProductService
     public async Task<ProductDto> UpdateAsync(Guid id, UpdateProductRequest request, Guid userId, CancellationToken cancellationToken = default)
     {
         var product = await GetOwnedProductAsync(id, userId, cancellationToken);
+        var printer = await GetOwnedPrinterAsync(request.PrinterId, userId, cancellationToken);
 
         var productPhoto = string.IsNullOrWhiteSpace(request.ProductPhotoBase64)
             ? product.ProductPhoto
             : request.ProductPhotoBase64;
 
         var oldPrintRuns = product.PrintRuns;
-        product.Update(request.ProductName, productPhoto, request.TotalHours, request.Quantity, request.PiecesPerPrint);
+        product.Update(request.ProductName, productPhoto, request.TotalHours, request.Quantity, request.PiecesPerPrint, printer.Id);
 
         if (request.Filaments is not null || product.PrintRuns != oldPrintRuns)
         {
@@ -92,7 +103,7 @@ public class ProductService : IProductService
         var currentFilamentIds = product.Filaments.Select(pf => pf.FilamentId).Distinct().ToList();
         var filamentsForPricing = await GetFilamentsByIdsAsync(currentFilamentIds, userId, cancellationToken);
 
-        await ApplyPricingAsync(product, filamentsForPricing, request.SalePriceOverride, userId, cancellationToken);
+        await ApplyPricingAsync(product, filamentsForPricing, printer, request.SalePriceOverride, userId, cancellationToken);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -110,6 +121,7 @@ public class ProductService : IProductService
     private async Task ApplyPricingAsync(
         Product product,
         Dictionary<Guid, Filament> filamentsById,
+        Printer printer,
         decimal? salePriceOverride,
         Guid userId,
         CancellationToken cancellationToken)
@@ -120,10 +132,10 @@ public class ProductService : IProductService
             .Where(pf => filamentsById.ContainsKey(pf.FilamentId))
             .Select(pf => (pf.GramsUsed, filamentsById[pf.FilamentId].FilamentPrice));
 
-        var costPrice = ProductPricingCalculator.CalculateCost(filaments, product.TotalHours, product.PrintRuns, settings);
+        var costPrice = ProductPricingCalculator.CalculateCost(filaments, product.TotalHours, product.PrintRuns, printer, settings.KwhPrice);
         var salePrice = salePriceOverride is { } unitPrice
             ? unitPrice * product.Quantity
-            : ProductPricingCalculator.SuggestSalePrice(costPrice, settings);
+            : ProductPricingCalculator.SuggestSalePrice(costPrice, printer);
 
         product.SetPricing(costPrice, salePrice);
     }
@@ -161,6 +173,19 @@ public class ProductService : IProductService
         return ownedFilaments.ToDictionary(f => f.Id);
     }
 
+    private async Task<Printer> GetOwnedPrinterAsync(Guid? printerId, Guid userId, CancellationToken cancellationToken)
+    {
+        if (printerId is not { } id)
+            throw new DomainException("Selecione uma impressora.");
+
+        var printer = await _printerRepository.GetByIdAsync(id, cancellationToken);
+
+        if (printer is null || printer.UserId != userId)
+            throw new DomainException("Impressora nao encontrada.");
+
+        return printer;
+    }
+
     private async Task<Product> GetOwnedProductAsync(Guid id, Guid userId, CancellationToken cancellationToken)
     {
         var product = await _productRepository.GetByIdAsync(id, cancellationToken);
@@ -176,21 +201,26 @@ public class ProductService : IProductService
         var filamentIds = products.SelectMany(p => p.Filaments.Select(f => f.FilamentId)).Distinct().ToList();
         var filaments = await GetFilamentsByIdsAsync(filamentIds, userId, cancellationToken);
         var brandNames = await GetBrandNamesAsync(filaments.Values, cancellationToken);
-        var settings = await _userSettingsRepository.GetOrCreateAsync(userId, cancellationToken);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        var printers = await GetPrintersAsync(products, userId, cancellationToken);
 
-        return products.Select(p => ToDto(p, filaments, brandNames, settings)).ToList();
+        return products.Select(p => ToDto(p, filaments, brandNames, printers)).ToList();
     }
 
-    private async Task<ProductDto> ToDtoAsync(Product product, Guid userId, CancellationToken cancellationToken)
-    {
-        var filamentIds = product.Filaments.Select(f => f.FilamentId).Distinct().ToList();
-        var filaments = await GetFilamentsByIdsAsync(filamentIds, userId, cancellationToken);
-        var brandNames = await GetBrandNamesAsync(filaments.Values, cancellationToken);
-        var settings = await _userSettingsRepository.GetOrCreateAsync(userId, cancellationToken);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    private async Task<ProductDto> ToDtoAsync(Product product, Guid userId, CancellationToken cancellationToken) =>
+        (await ToDtosAsync([product], userId, cancellationToken))[0];
 
-        return ToDto(product, filaments, brandNames, settings);
+    /// <summary>Impressoras dos produtos + nome exibido de cada uma, buscadas em lote.</summary>
+    private async Task<Dictionary<Guid, (Printer Printer, string Name)>> GetPrintersAsync(List<Product> products, Guid userId, CancellationToken cancellationToken)
+    {
+        var printerIds = products.Where(p => p.PrinterId.HasValue).Select(p => p.PrinterId!.Value).Distinct().ToList();
+
+        if (printerIds.Count == 0)
+            return new Dictionary<Guid, (Printer, string)>();
+
+        var printers = await _printerRepository.GetByIdsAsync(printerIds, userId, cancellationToken);
+        var catalog = await PrinterCatalog.LoadAsync(_printerModelRepository, _printerBrandRepository, cancellationToken);
+
+        return printers.ToDictionary(p => p.Id, p => (p, catalog.DisplayName(p)));
     }
 
     private async Task<Dictionary<Guid, Filament>> GetFilamentsByIdsAsync(List<Guid> filamentIds, Guid userId, CancellationToken cancellationToken)
@@ -213,7 +243,11 @@ public class ProductService : IProductService
         return brands.Where(b => brandIds.Contains(b.Id)).ToDictionary(b => b.Id, b => b.NameBrand);
     }
 
-    private static ProductDto ToDto(Product product, Dictionary<Guid, Filament> filaments, Dictionary<Guid, string> brandNames, UserSettings settings)
+    private static ProductDto ToDto(
+        Product product,
+        Dictionary<Guid, Filament> filaments,
+        Dictionary<Guid, string> brandNames,
+        Dictionary<Guid, (Printer Printer, string Name)> printers)
     {
         var productFilaments = product.Filaments
             .Where(pf => filaments.ContainsKey(pf.FilamentId))
@@ -225,7 +259,12 @@ public class ProductService : IProductService
             })
             .ToList();
 
-        var suggestedSalePrice = ProductPricingCalculator.SuggestSalePrice(product.CostPrice, settings);
+        var printer = product.PrinterId is { } printerId && printers.TryGetValue(printerId, out var found) ? found : default;
+
+        // Produto legado (sem impressora) nao tem margem pra aplicar: o sugerido e o preco salvo.
+        var suggestedSalePrice = printer.Printer is not null
+            ? ProductPricingCalculator.SuggestSalePrice(product.CostPrice, printer.Printer)
+            : product.SalePrice;
 
         return new ProductDto(
             product.Id,
@@ -241,6 +280,8 @@ public class ProductService : IProductService
             product.SalePrice,
             product.SalePrice / product.Quantity,
             suggestedSalePrice,
+            printer.Printer?.Id,
+            printer.Name,
             productFilaments,
             product.CreatedAt,
             product.UpdatedAt);

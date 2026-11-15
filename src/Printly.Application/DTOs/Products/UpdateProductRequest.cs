@@ -6,5 +6,6 @@ public record UpdateProductRequest(
     decimal TotalHours,
     int Quantity,
     int PiecesPerPrint,
+    Guid? PrinterId,
     decimal? SalePriceOverride,
     List<ProductFilamentRequest>? Filaments);

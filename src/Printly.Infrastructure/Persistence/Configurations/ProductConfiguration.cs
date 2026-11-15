@@ -56,6 +56,12 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
             .HasForeignKey(p => p.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        // Excluir a impressora nao apaga o produto: ele mantem o preco salvo e exige outra impressora ao editar.
+        builder.HasOne<Printer>()
+            .WithMany()
+            .HasForeignKey(p => p.PrinterId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder.HasMany(p => p.Filaments)
             .WithOne()
             .HasForeignKey(pf => pf.ProductId)

@@ -207,6 +207,122 @@ namespace Printly.Infrastructure.Persistence.Migrations
                     b.ToTable("invite_codes", (string)null);
                 });
 
+            modelBuilder.Entity("Printly.Domain.Entities.Printer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<decimal>("AveragePowerWatts")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<decimal>("DefaultProfitMarginPercentage")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<bool>("DepreciationEnabled")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("FailureEnabled")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<decimal>("FailureRatePercentage")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<bool>("MaintenanceEnabled")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<decimal>("MaintenancePercentage")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<string>("Nickname")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<decimal>("PrinterLifespanHours")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<Guid>("PrinterModelId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<decimal>("PrinterValue")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PrinterModelId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("printers", (string)null);
+                });
+
+            modelBuilder.Entity("Printly.Domain.Entities.PrinterBrand", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("printer_brands", (string)null);
+                });
+
+            modelBuilder.Entity("Printly.Domain.Entities.PrinterModel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("BrandId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Image")
+                        .HasColumnType("longtext");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BrandId");
+
+                    b.ToTable("printer_models", (string)null);
+                });
+
             modelBuilder.Entity("Printly.Domain.Entities.Product", b =>
                 {
                     b.Property<Guid>("Id")
@@ -223,6 +339,9 @@ namespace Printly.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasDefaultValue(1);
+
+                    b.Property<Guid?>("PrinterId")
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("ProductName")
                         .IsRequired()
@@ -253,6 +372,8 @@ namespace Printly.Infrastructure.Persistence.Migrations
                         .HasColumnType("char(36)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("PrinterId");
 
                     b.HasIndex("UserId");
 
@@ -324,52 +445,11 @@ namespace Printly.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
 
-                    b.Property<decimal>("AveragePowerWatts")
-                        .HasColumnType("decimal(10,2)");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<decimal>("DefaultProfitMarginPercentage")
-                        .HasColumnType("decimal(10,2)");
-
-                    b.Property<bool>("DepreciationEnabled")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("FailureEnabled")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(false);
-
-                    b.Property<decimal>("FailureRatePercentage")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("decimal(10,2)")
-                        .HasDefaultValue(5m);
-
                     b.Property<decimal>("KwhPrice")
                         .HasColumnType("decimal(10,2)");
-
-                    b.Property<bool>("MaintenanceEnabled")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(false);
-
-                    b.Property<decimal>("MaintenancePercentage")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("decimal(10,2)")
-                        .HasDefaultValue(10m);
-
-                    b.Property<decimal>("PrinterLifespanHours")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("decimal(10,2)")
-                        .HasDefaultValue(2000m);
-
-                    b.Property<decimal>("PrinterValue")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("decimal(10,2)")
-                        .HasDefaultValue(0m);
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
@@ -415,8 +495,37 @@ namespace Printly.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Printly.Domain.Entities.Printer", b =>
+                {
+                    b.HasOne("Printly.Domain.Entities.PrinterModel", null)
+                        .WithMany()
+                        .HasForeignKey("PrinterModelId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Printly.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Printly.Domain.Entities.PrinterModel", b =>
+                {
+                    b.HasOne("Printly.Domain.Entities.PrinterBrand", null)
+                        .WithMany()
+                        .HasForeignKey("BrandId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Printly.Domain.Entities.Product", b =>
                 {
+                    b.HasOne("Printly.Domain.Entities.Printer", null)
+                        .WithMany()
+                        .HasForeignKey("PrinterId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Printly.Domain.Entities.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")

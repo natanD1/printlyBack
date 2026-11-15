@@ -14,6 +14,8 @@ public record ProductDto(
     decimal SalePrice,
     decimal UnitSalePrice,
     decimal SuggestedSalePrice,
+    Guid? PrinterId,
+    string? PrinterName,
     IReadOnlyList<ProductFilamentDto> Filaments,
     DateTime CreatedAt,
     DateTime? UpdatedAt);

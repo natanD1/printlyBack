@@ -8,13 +8,16 @@ public class ProductPricingCalculatorTests
     // 100 g de filamento a R$ 100/kg = R$ 10 de material; 2 h a 500 W e R$ 1/kWh = R$ 1 de energia.
     private static readonly (decimal GramsUsed, decimal FilamentPricePerKg)[] Filaments = { (100m, 100m) };
 
-    private static UserSettings Settings(
+    private const decimal KwhPrice = 1m;
+
+    private static Printer Printer(
         bool depreciation = false,
         bool maintenance = false,
         bool failure = false,
         decimal margin = 50m) =>
         new(
-            kwhPrice: 1m,
+            printerModelId: Guid.NewGuid(),
+            nickname: null,
             averagePowerWatts: 500m,
             defaultProfitMarginPercentage: margin,
             printerValue: 2000m,
@@ -29,7 +32,7 @@ public class ProductPricingCalculatorTests
     [Fact]
     public void AllOptionalsOff_MatchesLegacyFormula()
     {
-        var cost = ProductPricingCalculator.CalculateCost(Filaments, 2m, 1, Settings());
+        var cost = ProductPricingCalculator.CalculateCost(Filaments, 2m, 1, Printer(), KwhPrice);
 
         Assert.Equal(11m, cost);
     }
@@ -38,7 +41,7 @@ public class ProductPricingCalculatorTests
     public void PrintRuns_MultipliesMaterialAndEnergy()
     {
         // 10 pecas, 5 por impressao => 2 impressoes da mesa (100 g, 2 h cada).
-        var cost = ProductPricingCalculator.CalculateCost(Filaments, 2m, 10m / 5, Settings());
+        var cost = ProductPricingCalculator.CalculateCost(Filaments, 2m, 10m / 5, Printer(), KwhPrice);
 
         Assert.Equal(22m, cost);
     }
@@ -47,7 +50,7 @@ public class ProductPricingCalculatorTests
     public void PrintRuns_IsProportionalForPartialPlate()
     {
         // 12 pecas, 5 por impressao => 2.4 impressoes.
-        var cost = ProductPricingCalculator.CalculateCost(Filaments, 2m, 12m / 5, Settings());
+        var cost = ProductPricingCalculator.CalculateCost(Filaments, 2m, 12m / 5, Printer(), KwhPrice);
 
         Assert.Equal(26.4m, cost);
     }
@@ -56,7 +59,7 @@ public class ProductPricingCalculatorTests
     public void Depreciation_UsesPrinterValueOverLifespanTimesBatchHours()
     {
         // 2000 / 1000 = R$ 2/h; 2 h x 2 impressoes = 4 h => R$ 8. Material 20 + energia 2 + 8 = 30.
-        var cost = ProductPricingCalculator.CalculateCost(Filaments, 2m, 2, Settings(depreciation: true));
+        var cost = ProductPricingCalculator.CalculateCost(Filaments, 2m, 2, Printer(depreciation: true), KwhPrice);
 
         Assert.Equal(30m, cost);
     }
@@ -65,7 +68,7 @@ public class ProductPricingCalculatorTests
     public void Maintenance_IsPercentageOfDepreciation()
     {
         // depreciacao 4 (2 h x R$ 2/h) + manutencao 10% = 0.4; material 10 + energia 1 => 15.4
-        var cost = ProductPricingCalculator.CalculateCost(Filaments, 2m, 1, Settings(depreciation: true, maintenance: true));
+        var cost = ProductPricingCalculator.CalculateCost(Filaments, 2m, 1, Printer(depreciation: true, maintenance: true), KwhPrice);
 
         Assert.Equal(15.4m, cost);
     }
@@ -73,7 +76,7 @@ public class ProductPricingCalculatorTests
     [Fact]
     public void Maintenance_WithoutDepreciation_AddsNothing()
     {
-        var cost = ProductPricingCalculator.CalculateCost(Filaments, 2m, 1, Settings(maintenance: true));
+        var cost = ProductPricingCalculator.CalculateCost(Filaments, 2m, 1, Printer(maintenance: true), KwhPrice);
 
         Assert.Equal(11m, cost);
     }
@@ -82,7 +85,7 @@ public class ProductPricingCalculatorTests
     public void FailureLoss_IsPercentageOfProductionCost()
     {
         // producao 11 + 20% = 13.2
-        var cost = ProductPricingCalculator.CalculateCost(Filaments, 2m, 1, Settings(failure: true));
+        var cost = ProductPricingCalculator.CalculateCost(Filaments, 2m, 1, Printer(failure: true), KwhPrice);
 
         Assert.Equal(13.2m, cost);
     }
@@ -90,7 +93,7 @@ public class ProductPricingCalculatorTests
     [Fact]
     public void SuggestSalePrice_AppliesProfitMargin()
     {
-        var price = ProductPricingCalculator.SuggestSalePrice(20m, Settings(margin: 50m));
+        var price = ProductPricingCalculator.SuggestSalePrice(20m, Printer(margin: 50m));
 
         Assert.Equal(30m, price);
     }
