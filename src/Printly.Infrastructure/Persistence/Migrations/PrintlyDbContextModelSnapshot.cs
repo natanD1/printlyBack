@@ -335,6 +335,9 @@ namespace Printly.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<bool>("IsProduced")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<int>("PiecesPerPrint")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")

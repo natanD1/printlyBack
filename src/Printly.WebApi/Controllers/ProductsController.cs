@@ -78,6 +78,13 @@ public class ProductsController : ControllerBase
         return Ok(product);
     }
 
+    [HttpPatch("{id:guid}/production")]
+    public async Task<ActionResult<ProductDto>> UpdateProduction(Guid id, [FromBody] UpdateProductionForm form, CancellationToken cancellationToken)
+    {
+        var product = await _productService.SetProducedAsync(id, form.IsProduced, GetUserId(), cancellationToken);
+        return Ok(product);
+    }
+
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {

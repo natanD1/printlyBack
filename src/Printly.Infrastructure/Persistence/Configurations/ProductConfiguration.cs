@@ -33,6 +33,9 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
 
         builder.Ignore(p => p.PrintRuns);
 
+        builder.Property(p => p.IsProduced)
+            .IsRequired();
+
         builder.Property(p => p.TotalFilament)
             .HasColumnType("decimal(10,2)")
             .IsRequired();
