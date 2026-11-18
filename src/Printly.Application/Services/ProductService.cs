@@ -57,8 +57,8 @@ public class ProductService : IProductService
         var printer = await GetOwnedPrinterAsync(request.PrinterId, userId, cancellationToken);
         var product = new Product(request.ProductName, request.ProductPhotoBase64, request.TotalHours, request.Quantity, request.PiecesPerPrint, printer.Id, userId);
 
+        // Produto nasce como orcamento: o estoque so e descontado em SetProducedAsync.
         var ownedFilaments = await ValidateAndBuildFilamentsAsync(request.Filaments, userId, cancellationToken);
-        DeductStockOrThrow(ownedFilaments, request.Filaments, product.PrintRuns);
         product.SetFilaments(request.Filaments.Select(f => (f.FilamentId, f.GramsUsed)));
 
         await ApplyPricingAsync(product, ownedFilaments, printer, request.SalePriceOverride, userId, cancellationToken);
@@ -83,18 +83,15 @@ public class ProductService : IProductService
 
         if (request.Filaments is not null || product.PrintRuns != oldPrintRuns)
         {
-            var oldFilamentIds = product.Filaments.Select(pf => pf.FilamentId).Distinct().ToList();
-            var oldFilaments = await GetFilamentsByIdsAsync(oldFilamentIds, userId, cancellationToken);
-
-            foreach (var oldLink in product.Filaments)
-                if (oldFilaments.TryGetValue(oldLink.FilamentId, out var oldFilament))
-                    oldFilament.RestoreStock(oldLink.GramsUsed * oldPrintRuns / 1000m);
-
-            var newFilaments = request.Filaments
-                ?? product.Filaments.Select(pf => new ProductFilamentRequest(pf.FilamentId, pf.GramsUsed)).ToList();
-
+            var newFilaments = request.Filaments ?? ToFilamentRequests(product);
             var ownedFilaments = await ValidateAndBuildFilamentsAsync(newFilaments, userId, cancellationToken);
-            DeductStockOrThrow(ownedFilaments, newFilaments, product.PrintRuns);
+
+            // Orcamento nao mexe no estoque; produzido troca o consumo antigo pelo novo.
+            if (product.IsProduced)
+            {
+                await RestoreStockAsync(product, oldPrintRuns, userId, cancellationToken);
+                DeductStockOrThrow(ownedFilaments, newFilaments, product.PrintRuns);
+            }
 
             if (request.Filaments is not null)
                 product.SetFilaments(request.Filaments.Select(f => (f.FilamentId, f.GramsUsed)));
@@ -110,6 +107,31 @@ public class ProductService : IProductService
         return await ToDtoAsync(product, userId, cancellationToken);
     }
 
+    public async Task<ProductDto> SetProducedAsync(Guid id, bool isProduced, Guid userId, CancellationToken cancellationToken = default)
+    {
+        var product = await GetOwnedProductAsync(id, userId, cancellationToken);
+
+        if (product.IsProduced == isProduced)
+            return await ToDtoAsync(product, userId, cancellationToken);
+
+        if (isProduced)
+        {
+            var filaments = ToFilamentRequests(product);
+            var ownedFilaments = await ValidateAndBuildFilamentsAsync(filaments, userId, cancellationToken);
+            DeductStockOrThrow(ownedFilaments, filaments, product.PrintRuns);
+        }
+        else
+        {
+            await RestoreStockAsync(product, product.PrintRuns, userId, cancellationToken);
+        }
+
+        product.SetProduced(isProduced);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return await ToDtoAsync(product, userId, cancellationToken);
+    }
+
+    /// <remarks>Excluir nao devolve filamento: se foi produzido, o material ja foi gasto.</remarks>
     public async Task DeleteAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
     {
         var product = await GetOwnedProductAsync(id, userId, cancellationToken);
@@ -117,6 +139,20 @@ public class ProductService : IProductService
         _productRepository.Remove(product);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
+
+    /// <summary>Devolve ao estoque o consumo atual do produto, calculado com <paramref name="printRuns"/>.</summary>
+    private async Task RestoreStockAsync(Product product, decimal printRuns, Guid userId, CancellationToken cancellationToken)
+    {
+        var filamentIds = product.Filaments.Select(pf => pf.FilamentId).Distinct().ToList();
+        var filaments = await GetFilamentsByIdsAsync(filamentIds, userId, cancellationToken);
+
+        foreach (var link in product.Filaments)
+            if (filaments.TryGetValue(link.FilamentId, out var filament))
+                filament.RestoreStock(link.GramsUsed * printRuns / 1000m);
+    }
+
+    private static List<ProductFilamentRequest> ToFilamentRequests(Product product) =>
+        product.Filaments.Select(pf => new ProductFilamentRequest(pf.FilamentId, pf.GramsUsed)).ToList();
 
     private async Task ApplyPricingAsync(
         Product product,
@@ -282,6 +318,7 @@ public class ProductService : IProductService
             suggestedSalePrice,
             printer.Printer?.Id,
             printer.Name,
+            product.IsProduced,
             productFilaments,
             product.CreatedAt,
             product.UpdatedAt);

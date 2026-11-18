@@ -18,6 +18,12 @@ public class Product : BaseEntity
     /// <summary>Impressora usada no calculo de custo. Nulo so em produtos anteriores ao modulo de impressoras.</summary>
     public Guid? PrinterId { get; private set; }
 
+    /// <summary>
+    /// Falso = orcamento: so calcula preco, sem descontar estoque nem entrar nos indicadores.
+    /// Verdadeiro = produzido: filamento descontado do estoque e contabilizado.
+    /// </summary>
+    public bool IsProduced { get; private set; }
+
     public Guid UserId { get; private set; }
     public IReadOnlyCollection<ProductFilament> Filaments => _filaments.AsReadOnly();
 
@@ -65,6 +71,12 @@ public class Product : BaseEntity
             _filaments.Add(new ProductFilament(Id, item.FilamentId, item.GramsUsed));
 
         TotalFilament = items.Sum(f => f.GramsUsed);
+        MarkAsUpdated();
+    }
+
+    public void SetProduced(bool isProduced)
+    {
+        IsProduced = isProduced;
         MarkAsUpdated();
     }
 
