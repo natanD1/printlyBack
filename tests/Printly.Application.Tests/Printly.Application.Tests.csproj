@@ -16,6 +16,8 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <!-- Alinha com o EF Core que o Infrastructure compila (via EntityFrameworkCore.Design 8.0.11); sem isso o Pomelo puxa 8.0.2 e gera MSB3277. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.11" />
     <PackageReference Include="coverlet.collector" Version="6.0.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
@@ -24,6 +26,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Printly.Application\Printly.Application.csproj" />
+    <ProjectReference Include="..\..\src\Printly.Infrastructure\Printly.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

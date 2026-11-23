@@ -6,7 +6,8 @@
     "Secret": "CHANGE_ME_min_32_chars",
     "Issuer": "Printly.WebApi",
     "Audience": "Printly.Client",
-    "ExpirationMinutes": 60
+    "AccessTokenMinutes": 15,
+    "RefreshTokenDays": 7
   },
   "Logging": {
     "LogLevel": {

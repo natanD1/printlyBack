@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -10,22 +11,28 @@ namespace Printly.Infrastructure.Security;
 
 public class TokenService : ITokenService
 {
-    private readonly JwtSettings _settings;
+    private const int RefreshTokenBytes = 32;
 
-    public TokenService(IOptions<JwtSettings> settings)
+    private readonly JwtSettings _settings;
+    private readonly TimeProvider _timeProvider;
+
+    public TokenService(IOptions<JwtSettings> settings, TimeProvider timeProvider)
     {
         _settings = settings.Value;
+        _timeProvider = timeProvider;
     }
 
-    public (string Token, DateTime ExpiresAt) GenerateToken(User user)
-    {
-        var expiresAt = DateTime.UtcNow.AddMinutes(_settings.ExpirationMinutes);
+    public TimeSpan RefreshTokenLifetime => TimeSpan.FromDays(_settings.RefreshTokenDays);
 
+    public (string Token, int ExpiresInSeconds) GenerateAccessToken(User user)
+    {
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+        var lifetime = TimeSpan.FromMinutes(_settings.AccessTokenMinutes);
+
+        // So o necessario: id do usuario, id do token e role. Sem email/nome (nao sao lidos pela API).
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new(JwtRegisteredClaimNames.Email, user.Email),
-            new(ClaimTypes.Name, user.Name),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
@@ -39,9 +46,16 @@ public class TokenService : ITokenService
             issuer: _settings.Issuer,
             audience: _settings.Audience,
             claims: claims,
-            expires: expiresAt,
+            notBefore: now,
+            expires: now.Add(lifetime),
             signingCredentials: credentials);
 
-        return (new JwtSecurityTokenHandler().WriteToken(token), expiresAt);
+        return (new JwtSecurityTokenHandler().WriteToken(token), (int)lifetime.TotalSeconds);
     }
+
+    public string GenerateRefreshToken() =>
+        Base64UrlEncoder.Encode(RandomNumberGenerator.GetBytes(RefreshTokenBytes));
+
+    public string HashRefreshToken(string refreshToken) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken))).ToLowerInvariant();
 }

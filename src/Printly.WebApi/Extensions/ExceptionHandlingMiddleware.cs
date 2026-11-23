@@ -17,6 +17,11 @@ public class ExceptionHandlingMiddleware
         {
             await _next(context);
         }
+        catch (UnauthorizedException ex)
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            await context.Response.WriteAsJsonAsync(new { message = ex.Message });
+        }
         catch (DomainException ex)
         {
             context.Response.StatusCode = StatusCodes.Status400BadRequest;

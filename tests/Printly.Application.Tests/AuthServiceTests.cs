@@ -15,11 +15,14 @@ public class AuthServiceTests
     {
         public FakeUserRepository Users { get; } = new();
         public FakeInviteCodeRepository Invites { get; } = new();
+        public FakeRefreshTokenRepository RefreshTokens { get; } = new();
+        public FakeTokenService Tokens { get; } = new();
+        public FakeTimeProvider Time { get; } = new();
         public AuthService Service { get; }
 
         public Context()
         {
-            Service = new AuthService(Users, Invites, new FakePasswordHasher(), new FakeTokenService(), new FakeUnitOfWork());
+            Service = new AuthService(Users, Invites, new FakePasswordHasher(), Tokens, RefreshTokens, new FakeUnitOfWork(), Time);
         }
 
         public InviteCode AddInvite(string code = "ABC123")
@@ -31,6 +34,33 @@ public class AuthServiceTests
 
         public Task<AuthResponse> Register(string email, string password = StrongPassword, string code = "ABC123") =>
             Service.RegisterAsync(new RegisterRequest("Fulano", email, password, code));
+    }
+
+    [Fact]
+    public async Task Register_And_Login_ReturnBothTokens_AndPersistOnlyTheHash()
+    {
+        var ctx = new Context();
+        ctx.AddInvite();
+
+        var registered = await ctx.Register("a@b.com");
+        var logged = await ctx.Service.LoginAsync(new LoginRequest("a@b.com", StrongPassword));
+
+        foreach (var response in new[] { registered, logged })
+        {
+            Assert.False(string.IsNullOrEmpty(response.AccessToken));
+            Assert.False(string.IsNullOrEmpty(response.RefreshToken));
+            Assert.Equal(900, response.AccessTokenExpiresIn);
+            Assert.Equal(604800, response.RefreshTokenExpiresIn);
+            var stored = Assert.Single(ctx.RefreshTokens.Items, t => t.TokenHash == ctx.Tokens.HashRefreshToken(response.RefreshToken));
+            Assert.Equal(response.User.Id, stored.UserId);
+            Assert.Equal(ctx.Time.UtcNow.UtcDateTime.AddDays(7), stored.ExpiresAt);
+        }
+
+        Assert.Equal(2, ctx.RefreshTokens.Items.Count);
+        Assert.DoesNotContain(ctx.RefreshTokens.Items, t => t.TokenHash == registered.RefreshToken || t.TokenHash == logged.RefreshToken);
+        Assert.All(ctx.RefreshTokens.Items, t => Assert.Equal(64, t.TokenHash.Length));
+        // Cada login abre uma familia nova.
+        Assert.Equal(2, ctx.RefreshTokens.Items.Select(t => t.FamilyId).Distinct().Count());
     }
 
     [Fact]
@@ -155,69 +185,5 @@ public class AuthServiceTests
         var response = await ctx.Service.LoginAsync(new LoginRequest("old@b.com", "123"));
 
         Assert.Equal("old@b.com", response.User.Email);
-    }
-
-    private sealed class FakeUserRepository : IUserRepository
-    {
-        public List<User> Items { get; } = new();
-
-        public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
-            Task.FromResult(Items.FirstOrDefault(u => u.Id == id));
-
-        public Task<List<User>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default) =>
-            Task.FromResult(Items.Where(u => ids.Contains(u.Id)).ToList());
-
-        public Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default) =>
-            Task.FromResult(Items.FirstOrDefault(u => u.Email == email.Trim().ToLowerInvariant()));
-
-        public Task<bool> EmailExistsAsync(string email, CancellationToken cancellationToken = default) =>
-            Task.FromResult(Items.Any(u => u.Email == email.Trim().ToLowerInvariant()));
-
-        public Task AddAsync(User user, CancellationToken cancellationToken = default)
-        {
-            Items.Add(user);
-            return Task.CompletedTask;
-        }
-    }
-
-    private sealed class FakeInviteCodeRepository : IInviteCodeRepository
-    {
-        public List<InviteCode> Items { get; } = new();
-
-        public Task<InviteCode?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
-            Task.FromResult(Items.FirstOrDefault(i => i.Id == id));
-
-        public Task<InviteCode?> GetByCodeAsync(string code, CancellationToken cancellationToken = default) =>
-            Task.FromResult(Items.FirstOrDefault(i => i.Code == code.Trim().ToUpperInvariant()));
-
-        public Task<List<InviteCode>> GetAllAsync(CancellationToken cancellationToken = default) =>
-            Task.FromResult(Items.ToList());
-
-        public Task<List<InviteCode>> GetExpiredUnusedAsync(CancellationToken cancellationToken = default) =>
-            Task.FromResult(new List<InviteCode>());
-
-        public Task AddAsync(InviteCode inviteCode, CancellationToken cancellationToken = default)
-        {
-            Items.Add(inviteCode);
-            return Task.CompletedTask;
-        }
-
-        public void Remove(InviteCode inviteCode) => Items.Remove(inviteCode);
-    }
-
-    private sealed class FakePasswordHasher : IPasswordHasher
-    {
-        public string Hash(string password) => "hash:" + password;
-        public bool Verify(string password, string hash) => hash == "hash:" + password;
-    }
-
-    private sealed class FakeTokenService : ITokenService
-    {
-        public (string Token, DateTime ExpiresAt) GenerateToken(User user) => ("token", DateTime.UtcNow.AddHours(1));
-    }
-
-    private sealed class FakeUnitOfWork : IUnitOfWork
-    {
-        public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) => Task.FromResult(1);
     }
 }
