@@ -51,10 +51,19 @@ public class AuthController : ControllerBase
         return Ok(user);
     }
 
-    [HttpPost("logout")]
-    [Authorize]
-    public IActionResult Logout()
+    [HttpPost("refresh")]
+    [AllowAnonymous]
+    public async Task<ActionResult<AuthResponse>> Refresh(RefreshTokenRequest request, CancellationToken cancellationToken)
     {
+        var response = await _authService.RefreshAsync(request.RefreshToken, cancellationToken);
+        return Ok(response);
+    }
+
+    [HttpPost("logout")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Logout(RefreshTokenRequest request, CancellationToken cancellationToken)
+    {
+        await _authService.LogoutAsync(request.RefreshToken, cancellationToken);
         return NoContent();
     }
 }

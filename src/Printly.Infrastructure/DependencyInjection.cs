@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Printly.Application.Interfaces;
 using Printly.Application.Services;
 using Printly.Domain.Interfaces;
@@ -23,6 +24,8 @@ public static class DependencyInjection
 
         services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
 
+        services.TryAddSingleton(TimeProvider.System);
+
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IInviteCodeRepository, InviteCodeRepository>();
@@ -36,6 +39,7 @@ public static class DependencyInjection
         services.AddScoped<IPrinterModelRepository, PrinterModelRepository>();
         services.AddScoped<IPrinterRepository, PrinterRepository>();
         services.AddScoped<ICompanyProfileRepository, CompanyProfileRepository>();
+        services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<ITokenService, TokenService>();
@@ -54,6 +58,7 @@ public static class DependencyInjection
         services.AddScoped<ICompanyProfileService, CompanyProfileService>();
 
         services.AddHostedService<InviteCodeExpirationService>();
+        services.AddHostedService<RefreshTokenCleanupService>();
 
         return services;
     }

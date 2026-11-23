@@ -43,6 +43,10 @@ builder.Services.AddInfrastructure(builder.Configuration);
 var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>()
     ?? throw new InvalidOperationException("Configuracao 'Jwt' nao encontrada.");
 
+// HS256 exige chave de pelo menos 256 bits: falha na subida, nao no primeiro login.
+if (string.IsNullOrEmpty(jwtSettings.Secret) || Encoding.UTF8.GetByteCount(jwtSettings.Secret) < 32)
+    throw new InvalidOperationException("Jwt:Secret deve ter pelo menos 32 bytes.");
+
 builder.Services
     .AddAuthentication(options =>
     {
@@ -56,6 +60,8 @@ builder.Services
             ValidateIssuer = true,
             ValidateAudience = true,
             ValidateLifetime = true,
+            // Padrao do JwtBearer e 5 min: com access de 15 min a tolerancia precisa ser curta.
+            ClockSkew = TimeSpan.FromSeconds(30),
             ValidateIssuerSigningKey = true,
             ValidIssuer = jwtSettings.Issuer,
             ValidAudience = jwtSettings.Audience,
