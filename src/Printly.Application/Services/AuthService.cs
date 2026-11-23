@@ -15,6 +15,7 @@ public class AuthService : IAuthService
     private readonly IPasswordHasher _passwordHasher;
     private readonly ITokenService _tokenService;
     private readonly IRefreshTokenRepository _refreshTokenRepository;
+    private readonly IPlanRepository _planRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly TimeProvider _timeProvider;
 
@@ -24,6 +25,7 @@ public class AuthService : IAuthService
         IPasswordHasher passwordHasher,
         ITokenService tokenService,
         IRefreshTokenRepository refreshTokenRepository,
+        IPlanRepository planRepository,
         IUnitOfWork unitOfWork,
         TimeProvider timeProvider)
     {
@@ -32,6 +34,7 @@ public class AuthService : IAuthService
         _passwordHasher = passwordHasher;
         _tokenService = tokenService;
         _refreshTokenRepository = refreshTokenRepository;
+        _planRepository = planRepository;
         _unitOfWork = unitOfWork;
         _timeProvider = timeProvider;
     }
@@ -49,8 +52,12 @@ public class AuthService : IAuthService
         if (await _userRepository.EmailExistsAsync(request.Email, cancellationToken))
             throw new DomainException("Ja existe um usuario cadastrado com este email.");
 
+        // Novo usuario cai no plano marcado como padrao (a marcacao vale, nao o nome).
+        var defaultPlan = await _planRepository.GetDefaultAsync(cancellationToken)
+            ?? throw new DomainException("Nenhum plano padrao configurado. Entre em contato com o suporte.");
+
         var passwordHash = _passwordHasher.Hash(request.Password);
-        var user = new User(request.Name, request.Email, passwordHash, inviteCode.Id);
+        var user = new User(request.Name, request.Email, passwordHash, inviteCode.Id, defaultPlan.Id);
 
         inviteCode.MarkAsUsed(user.Id);
 

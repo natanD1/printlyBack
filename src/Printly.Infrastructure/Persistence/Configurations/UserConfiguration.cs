@@ -32,5 +32,12 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.Property(u => u.CreatedAt)
             .IsRequired();
+
+        // Restrict: plano com usuarios nao pode ser apagado (o PlanService avisa antes).
+        builder.HasOne<Plan>()
+            .WithMany()
+            .HasForeignKey(u => u.PlanId)
+            .IsRequired()
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

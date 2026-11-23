@@ -16,11 +16,12 @@ public class RefreshTokenFlowTests
         public FakeRefreshTokenRepository RefreshTokens { get; } = new();
         public FakeTokenService Tokens { get; } = new();
         public FakeTimeProvider Time { get; } = new();
+        public FakePlanRepository Plans { get; } = FakePlanRepository.WithDefaultPlan();
         public AuthService Service { get; }
 
         public Context()
         {
-            Service = new AuthService(Users, Invites, new FakePasswordHasher(), Tokens, RefreshTokens, new FakeUnitOfWork(), Time);
+            Service = new AuthService(Users, Invites, new FakePasswordHasher(), Tokens, RefreshTokens, Plans, new FakeUnitOfWork(), Time);
         }
 
         public async Task<AuthResponse> RegisterAsync()

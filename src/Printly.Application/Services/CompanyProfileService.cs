@@ -1,6 +1,7 @@
 using Printly.Application.DTOs.CompanyProfile;
 using Printly.Application.Interfaces;
 using Printly.Domain.Entities;
+using Printly.Domain.Enums;
 using Printly.Domain.Interfaces;
 
 namespace Printly.Application.Services;
@@ -8,11 +9,16 @@ namespace Printly.Application.Services;
 public class CompanyProfileService : ICompanyProfileService
 {
     private readonly ICompanyProfileRepository _companyProfileRepository;
+    private readonly IEntitlementService _entitlementService;
     private readonly IUnitOfWork _unitOfWork;
 
-    public CompanyProfileService(ICompanyProfileRepository companyProfileRepository, IUnitOfWork unitOfWork)
+    public CompanyProfileService(
+        ICompanyProfileRepository companyProfileRepository,
+        IEntitlementService entitlementService,
+        IUnitOfWork unitOfWork)
     {
         _companyProfileRepository = companyProfileRepository;
+        _entitlementService = entitlementService;
         _unitOfWork = unitOfWork;
     }
 
@@ -25,6 +31,10 @@ public class CompanyProfileService : ICompanyProfileService
 
     public async Task<CompanyProfileDto> SaveAsync(Guid userId, SaveCompanyProfileRequest request, CancellationToken cancellationToken = default)
     {
+        // So enviar/trocar logo exige o recurso. Textos e RemoveLogo passam; logo ja salvo nao e apagado.
+        if (!string.IsNullOrWhiteSpace(request.LogoBase64))
+            await _entitlementService.EnsureFeatureAsync(userId, PlanEntitlementKey.CompanyLogoInQuote, cancellationToken);
+
         var companyProfile = await _companyProfileRepository.GetByUserIdAsync(userId, cancellationToken);
 
         if (companyProfile is null)

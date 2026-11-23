@@ -22,6 +22,9 @@ public class PrinterRepository : IPrinterRepository
             .OrderBy(p => p.CreatedAt)
             .ToListAsync(cancellationToken);
 
+    public Task<int> CountByUserIdAsync(Guid userId, CancellationToken cancellationToken = default) =>
+        _context.Printers.CountAsync(p => p.UserId == userId, cancellationToken);
+
     public Task<List<Printer>> GetByIdsAsync(List<Guid> ids, Guid userId, CancellationToken cancellationToken = default) =>
         _context.Printers
             .Where(p => ids.Contains(p.Id) && p.UserId == userId)

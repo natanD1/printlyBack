@@ -1,6 +1,7 @@
 using Printly.Application.DTOs.Products;
 using Printly.Application.Interfaces;
 using Printly.Domain.Entities;
+using Printly.Domain.Enums;
 using Printly.Domain.Exceptions;
 using Printly.Domain.Interfaces;
 
@@ -15,6 +16,7 @@ public class ProductService : IProductService
     private readonly IPrinterRepository _printerRepository;
     private readonly IPrinterModelRepository _printerModelRepository;
     private readonly IPrinterBrandRepository _printerBrandRepository;
+    private readonly IEntitlementService _entitlementService;
     private readonly IUnitOfWork _unitOfWork;
 
     public ProductService(
@@ -25,6 +27,7 @@ public class ProductService : IProductService
         IPrinterRepository printerRepository,
         IPrinterModelRepository printerModelRepository,
         IPrinterBrandRepository printerBrandRepository,
+        IEntitlementService entitlementService,
         IUnitOfWork unitOfWork)
     {
         _productRepository = productRepository;
@@ -34,6 +37,7 @@ public class ProductService : IProductService
         _printerRepository = printerRepository;
         _printerModelRepository = printerModelRepository;
         _printerBrandRepository = printerBrandRepository;
+        _entitlementService = entitlementService;
         _unitOfWork = unitOfWork;
     }
 
@@ -41,6 +45,8 @@ public class ProductService : IProductService
     {
         if (from is { } start && to is { } end && start >= end)
             throw new DomainException("Periodo invalido: a data inicial deve ser anterior a final.");
+
+        from = await ApplyHistoryLimitAsync(userId, from, to, cancellationToken);
 
         var products = await _productRepository.GetAllByUserIdAsync(userId, from, to, cancellationToken);
         return await ToDtosAsync(products, userId, cancellationToken);
@@ -54,6 +60,9 @@ public class ProductService : IProductService
 
     public async Task<ProductDto> CreateAsync(CreateProductRequest request, Guid userId, CancellationToken cancellationToken = default)
     {
+        // Orcamento e produzido contam: o limite e de produtos criados no mes (fuso de Sao Paulo).
+        await _entitlementService.EnsureWithinLimitAsync(userId, PlanEntitlementKey.MaxProductsPerMonth, cancellationToken);
+
         var printer = await GetOwnedPrinterAsync(request.PrinterId, userId, cancellationToken);
         var product = new Product(request.ProductName, request.ProductPhotoBase64, request.TotalHours, request.Quantity, request.PiecesPerPrint, printer.Id, userId);
 
@@ -139,6 +148,34 @@ public class ProductService : IProductService
         _productRepository.Remove(product);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
+
+    /// <summary>
+    /// Historico liberado pelo plano (ProductHistoryMonths). Sem <paramref name="from"/>, usa o inicio permitido;
+    /// com <paramref name="from"/> anterior ao inicio (com 1 dia de tolerancia pra diferenca de fuso do cliente), bloqueia.
+    /// </summary>
+    private async Task<DateTime?> ApplyHistoryLimitAsync(Guid userId, DateTime? from, DateTime? to, CancellationToken cancellationToken)
+    {
+        var window = await _entitlementService.GetProductHistoryWindowAsync(userId, cancellationToken);
+
+        if (window is null)
+            return from;
+
+        var requestedTooOld = from is { } start
+            ? start < window.StartUtc.AddDays(-1)
+            : to is { } end && end <= window.StartUtc;
+
+        if (requestedTooOld)
+            throw new PlanRestrictionException(PlanRestrictionException.PlanLimitReached, HistoryLimitMessage(window.Months));
+
+        return from ?? window.StartUtc;
+    }
+
+    private static string HistoryLimitMessage(int months) => months switch
+    {
+        0 => "Seu plano permite consultar apenas o mes atual.",
+        1 => "Seu plano permite consultar ate 1 mes anterior.",
+        _ => $"Seu plano permite consultar ate {months} meses anteriores."
+    };
 
     /// <summary>Devolve ao estoque o consumo atual do produto, calculado com <paramref name="printRuns"/>.</summary>
     private async Task RestoreStockAsync(Product product, decimal printRuns, Guid userId, CancellationToken cancellationToken)

@@ -22,6 +22,9 @@ public class FilamentRepository : IFilamentRepository
             .OrderByDescending(f => f.CreatedAt)
             .ToListAsync(cancellationToken);
 
+    public Task<int> CountByUserIdAsync(Guid userId, CancellationToken cancellationToken = default) =>
+        _context.Filaments.CountAsync(f => f.UserId == userId, cancellationToken);
+
     public Task<List<Filament>> GetByIdsAsync(List<Guid> ids, Guid userId, CancellationToken cancellationToken = default) =>
         _context.Filaments
             .Where(f => ids.Contains(f.Id) && f.UserId == userId)

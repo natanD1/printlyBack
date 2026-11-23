@@ -258,6 +258,72 @@ namespace Printly.Infrastructure.Persistence.Migrations
                     b.ToTable("invite_codes", (string)null);
                 });
 
+            modelBuilder.Entity("Printly.Domain.Entities.Plan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsPublic")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
+
+                    b.Property<decimal>("MonthlyPrice")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("varchar(80)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("plans", (string)null);
+                });
+
+            modelBuilder.Entity("Printly.Domain.Entities.PlanEntitlement", b =>
+                {
+                    b.Property<Guid>("PlanId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Key")
+                        .HasMaxLength(60)
+                        .HasColumnType("varchar(60)");
+
+                    b.Property<bool?>("BoolValue")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int?>("IntValue")
+                        .HasColumnType("int");
+
+                    b.HasKey("PlanId", "Key");
+
+                    b.ToTable("plan_entitlements", (string)null);
+                });
+
             modelBuilder.Entity("Printly.Domain.Entities.Printer", b =>
                 {
                     b.Property<Guid>("Id")
@@ -530,6 +596,9 @@ namespace Printly.Infrastructure.Persistence.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("varchar(300)");
 
+                    b.Property<Guid>("PlanId")
+                        .HasColumnType("char(36)");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
@@ -537,6 +606,8 @@ namespace Printly.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("Email")
                         .IsUnique();
+
+                    b.HasIndex("PlanId");
 
                     b.ToTable("users", (string)null);
                 });
@@ -606,6 +677,15 @@ namespace Printly.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Printly.Domain.Entities.PlanEntitlement", b =>
+                {
+                    b.HasOne("Printly.Domain.Entities.Plan", null)
+                        .WithMany("Entitlements")
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Printly.Domain.Entities.Printer", b =>
                 {
                     b.HasOne("Printly.Domain.Entities.PrinterModel", null)
@@ -668,6 +748,15 @@ namespace Printly.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Printly.Domain.Entities.User", b =>
+                {
+                    b.HasOne("Printly.Domain.Entities.Plan", null)
+                        .WithMany()
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Printly.Domain.Entities.UserSettings", b =>
                 {
                     b.HasOne("Printly.Domain.Entities.User", null)
@@ -675,6 +764,11 @@ namespace Printly.Infrastructure.Persistence.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Printly.Domain.Entities.Plan", b =>
+                {
+                    b.Navigation("Entitlements");
                 });
 
             modelBuilder.Entity("Printly.Domain.Entities.Product", b =>

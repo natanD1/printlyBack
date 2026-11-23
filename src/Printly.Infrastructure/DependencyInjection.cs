@@ -40,6 +40,7 @@ public static class DependencyInjection
         services.AddScoped<IPrinterRepository, PrinterRepository>();
         services.AddScoped<ICompanyProfileRepository, CompanyProfileRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+        services.AddScoped<IPlanRepository, PlanRepository>();
 
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<ITokenService, TokenService>();
@@ -56,6 +57,9 @@ public static class DependencyInjection
         services.AddScoped<IPrinterModelService, PrinterModelService>();
         services.AddScoped<IPrinterService, PrinterService>();
         services.AddScoped<ICompanyProfileService, CompanyProfileService>();
+        services.AddScoped<IEntitlementService, EntitlementService>();
+        services.AddScoped<IPlanService, PlanService>();
+        services.AddScoped<IUserManagementService, UserManagementService>();
 
         services.AddHostedService<InviteCodeExpirationService>();
         services.AddHostedService<RefreshTokenCleanupService>();
