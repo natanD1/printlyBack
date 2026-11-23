@@ -42,6 +42,15 @@ public class AuthController : ControllerBase
         return Ok(user);
     }
 
+    [HttpPost("onboarding/complete")]
+    [Authorize]
+    public async Task<ActionResult<UserDto>> CompleteOnboarding(CancellationToken cancellationToken)
+    {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub")!);
+        var user = await _authService.CompleteOnboardingAsync(userId, cancellationToken);
+        return Ok(user);
+    }
+
     [HttpPost("logout")]
     [Authorize]
     public IActionResult Logout()

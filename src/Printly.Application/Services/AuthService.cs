@@ -30,6 +30,8 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
     {
+        PasswordPolicy.Validate(request.Password);
+
         var inviteCode = await _inviteCodeRepository.GetByCodeAsync(request.InviteCode, cancellationToken)
             ?? throw new DomainException("Codigo de convite invalido.");
 
@@ -68,11 +70,22 @@ public class AuthService : IAuthService
         return ToDto(user);
     }
 
+    public async Task<UserDto> CompleteOnboardingAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _userRepository.GetByIdAsync(userId, cancellationToken)
+            ?? throw new DomainException("Usuario nao encontrado.");
+
+        user.CompleteOnboarding();
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return ToDto(user);
+    }
+
     private AuthResponse BuildAuthResponse(User user)
     {
         var (token, expiresAt) = _tokenService.GenerateToken(user);
         return new AuthResponse(token, expiresAt, ToDto(user));
     }
 
-    private static UserDto ToDto(User user) => new(user.Id, user.Name, user.Email, user.CreatedAt, user.IsAdmin);
+    private static UserDto ToDto(User user) => new(user.Id, user.Name, user.Email, user.CreatedAt, user.IsAdmin, user.OnboardingCompletedAt is not null);
 }
