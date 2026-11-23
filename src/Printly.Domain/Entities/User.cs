@@ -9,6 +9,7 @@ public class User : BaseEntity
     public string PasswordHash { get; private set; } = default!;
     public Guid InviteCodeId { get; private set; }
     public bool IsAdmin { get; private set; }
+    public DateTime? OnboardingCompletedAt { get; private set; }
 
     protected User()
     {
@@ -35,6 +36,15 @@ public class User : BaseEntity
     public void MarkAsAdmin()
     {
         IsAdmin = true;
+        MarkAsUpdated();
+    }
+
+    public void CompleteOnboarding()
+    {
+        if (OnboardingCompletedAt is not null)
+            return;
+
+        OnboardingCompletedAt = DateTime.UtcNow;
         MarkAsUpdated();
     }
 }
