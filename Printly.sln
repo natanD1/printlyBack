@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Printly.Domain.Tests", "tes
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Printly.Application.Tests", "tests\Printly.Application.Tests\Printly.Application.Tests.csproj", "{21C295D3-1A85-439A-B054-E05E22BA5D39}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Printly.WebApi.Tests", "tests\Printly.WebApi.Tests\Printly.WebApi.Tests.csproj", "{F98C3392-72FD-4FF6-A3AD-8C682A950BAF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -52,6 +54,10 @@ Global
 		{21C295D3-1A85-439A-B054-E05E22BA5D39}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{21C295D3-1A85-439A-B054-E05E22BA5D39}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{21C295D3-1A85-439A-B054-E05E22BA5D39}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F98C3392-72FD-4FF6-A3AD-8C682A950BAF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F98C3392-72FD-4FF6-A3AD-8C682A950BAF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F98C3392-72FD-4FF6-A3AD-8C682A950BAF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F98C3392-72FD-4FF6-A3AD-8C682A950BAF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{1E47CF33-1CD4-4E53-BE9A-1452EE982D35} = {65C9A577-A99F-473F-896A-B3F521CB7FC8}
@@ -60,5 +66,6 @@ Global
 		{17E67BEF-29C7-4061-9354-78868E386112} = {65C9A577-A99F-473F-896A-B3F521CB7FC8}
 		{FC966F6C-9225-4143-B76F-1C658617AF71} = {A3524E26-A561-4B80-A855-B2AF0E3F3017}
 		{21C295D3-1A85-439A-B054-E05E22BA5D39} = {A3524E26-A561-4B80-A855-B2AF0E3F3017}
+		{F98C3392-72FD-4FF6-A3AD-8C682A950BAF} = {A3524E26-A561-4B80-A855-B2AF0E3F3017}
 	EndGlobalSection
 EndGlobal

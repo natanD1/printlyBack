@@ -3,6 +3,7 @@ using Printly.Application.DTOs.Filaments;
 using Printly.Application.DTOs.FilamentTypes;
 using Printly.Application.Interfaces;
 using Printly.Domain.Entities;
+using Printly.Domain.Enums;
 using Printly.Domain.Exceptions;
 using Printly.Domain.Interfaces;
 
@@ -13,17 +14,20 @@ public class FilamentService : IFilamentService
     private readonly IFilamentRepository _filamentRepository;
     private readonly IFilamentBrandRepository _filamentBrandRepository;
     private readonly IFilamentTypeRepository _filamentTypeRepository;
+    private readonly IEntitlementService _entitlementService;
     private readonly IUnitOfWork _unitOfWork;
 
     public FilamentService(
         IFilamentRepository filamentRepository,
         IFilamentBrandRepository filamentBrandRepository,
         IFilamentTypeRepository filamentTypeRepository,
+        IEntitlementService entitlementService,
         IUnitOfWork unitOfWork)
     {
         _filamentRepository = filamentRepository;
         _filamentBrandRepository = filamentBrandRepository;
         _filamentTypeRepository = filamentTypeRepository;
+        _entitlementService = entitlementService;
         _unitOfWork = unitOfWork;
     }
 
@@ -47,6 +51,8 @@ public class FilamentService : IFilamentService
 
     public async Task<FilamentDto> CreateAsync(CreateFilamentRequest request, Guid userId, CancellationToken cancellationToken = default)
     {
+        await _entitlementService.EnsureWithinLimitAsync(userId, PlanEntitlementKey.MaxFilaments, cancellationToken);
+
         var brand = await GetExistingBrandAsync(request.BrandId, cancellationToken);
         var type = await GetExistingTypeAsync(request.TypeId, cancellationToken);
 

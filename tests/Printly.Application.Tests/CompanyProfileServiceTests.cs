@@ -34,7 +34,7 @@ public class CompanyProfileServiceTests
     private static (CompanyProfileService Service, FakeCompanyProfileRepository Repository) CreateService()
     {
         var repository = new FakeCompanyProfileRepository();
-        return (new CompanyProfileService(repository, new FakeUnitOfWork()), repository);
+        return (new CompanyProfileService(repository, new AllowAllEntitlementService(), new FakeUnitOfWork()), repository);
     }
 
     [Fact]

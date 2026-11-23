@@ -23,6 +23,8 @@ public class PrintlyDbContext : DbContext
     public DbSet<Printer> Printers => Set<Printer>();
     public DbSet<CompanyProfile> CompanyProfiles => Set<CompanyProfile>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<Plan> Plans => Set<Plan>();
+    public DbSet<PlanEntitlement> PlanEntitlements => Set<PlanEntitlement>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

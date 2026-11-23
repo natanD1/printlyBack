@@ -4,7 +4,7 @@ namespace Printly.Domain.Tests;
 
 public class UserOnboardingTests
 {
-    private static User NewUser() => new("Fulano", "a@b.com", "hash", Guid.NewGuid());
+    private static User NewUser() => new("Fulano", "a@b.com", "hash", Guid.NewGuid(), Guid.NewGuid());
 
     [Fact]
     public void NewUser_HasNoOnboardingCompletedAt()

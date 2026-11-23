@@ -20,6 +20,9 @@ internal sealed class FakeUserRepository : IUserRepository
     public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
         Task.FromResult(Items.FirstOrDefault(u => u.Id == id));
 
+    public Task<List<User>> GetAllAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult(Items.OrderBy(u => u.Name).ToList());
+
     public Task<List<User>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default) =>
         Task.FromResult(Items.Where(u => ids.Contains(u.Id)).ToList());
 

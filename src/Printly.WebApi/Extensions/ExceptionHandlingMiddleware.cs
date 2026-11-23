@@ -22,6 +22,12 @@ public class ExceptionHandlingMiddleware
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             await context.Response.WriteAsJsonAsync(new { message = ex.Message });
         }
+        catch (PlanRestrictionException ex)
+        {
+            // Bloqueio do plano: 403 com code pra o front distinguir limite atingido de recurso indisponivel.
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await context.Response.WriteAsJsonAsync(new { message = ex.Message, code = ex.Code });
+        }
         catch (DomainException ex)
         {
             context.Response.StatusCode = StatusCodes.Status400BadRequest;

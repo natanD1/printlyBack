@@ -16,6 +16,9 @@ public class UserRepository : IUserRepository
     public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
         _context.Users.FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
 
+    public Task<List<User>> GetAllAsync(CancellationToken cancellationToken = default) =>
+        _context.Users.OrderBy(u => u.Name).ToListAsync(cancellationToken);
+
     public Task<List<User>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default) =>
         _context.Users.Where(u => ids.Contains(u.Id)).ToListAsync(cancellationToken);
 

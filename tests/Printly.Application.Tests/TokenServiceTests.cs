@@ -22,7 +22,7 @@ public class TokenServiceTests
 
     private static User NewUser(bool admin = false)
     {
-        var user = new User("Fulano", "a@b.com", "hash", Guid.NewGuid());
+        var user = new User("Fulano", "a@b.com", "hash", Guid.NewGuid(), Guid.NewGuid());
         if (admin)
             typeof(User).GetProperty(nameof(User.IsAdmin))!.SetValue(user, true);
         return user;

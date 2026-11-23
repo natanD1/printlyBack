@@ -1,6 +1,7 @@
 using Printly.Application.DTOs.Printers;
 using Printly.Application.Interfaces;
 using Printly.Domain.Entities;
+using Printly.Domain.Enums;
 using Printly.Domain.Exceptions;
 using Printly.Domain.Interfaces;
 
@@ -11,17 +12,20 @@ public class PrinterService : IPrinterService
     private readonly IPrinterRepository _printerRepository;
     private readonly IPrinterModelRepository _printerModelRepository;
     private readonly IPrinterBrandRepository _printerBrandRepository;
+    private readonly IEntitlementService _entitlementService;
     private readonly IUnitOfWork _unitOfWork;
 
     public PrinterService(
         IPrinterRepository printerRepository,
         IPrinterModelRepository printerModelRepository,
         IPrinterBrandRepository printerBrandRepository,
+        IEntitlementService entitlementService,
         IUnitOfWork unitOfWork)
     {
         _printerRepository = printerRepository;
         _printerModelRepository = printerModelRepository;
         _printerBrandRepository = printerBrandRepository;
+        _entitlementService = entitlementService;
         _unitOfWork = unitOfWork;
     }
 
@@ -35,6 +39,8 @@ public class PrinterService : IPrinterService
 
     public async Task<PrinterDto> CreateAsync(SavePrinterRequest request, Guid userId, CancellationToken cancellationToken = default)
     {
+        await _entitlementService.EnsureWithinLimitAsync(userId, PlanEntitlementKey.MaxPrinters, cancellationToken);
+        await EnsureOptionalCostsAllowedAsync(request, false, false, false, userId, cancellationToken);
         await EnsureActiveModelAsync(request.PrinterModelId, cancellationToken);
 
         var printer = new Printer(
@@ -60,6 +66,9 @@ public class PrinterService : IPrinterService
     public async Task<PrinterDto> UpdateAsync(Guid id, SavePrinterRequest request, Guid userId, CancellationToken cancellationToken = default)
     {
         var printer = await GetOwnedPrinterAsync(id, userId, cancellationToken);
+
+        await EnsureOptionalCostsAllowedAsync(
+            request, printer.DepreciationEnabled, printer.MaintenanceEnabled, printer.FailureEnabled, userId, cancellationToken);
 
         // Modelo inativo so bloqueia a troca; quem ja tem a impressora continua editando os custos.
         if (request.PrinterModelId != printer.PrinterModelId)
@@ -90,6 +99,26 @@ public class PrinterService : IPrinterService
         // Produtos que usavam a impressora ficam com PrinterId nulo (FK SetNull) e mantem o preco salvo.
         _printerRepository.Remove(printer);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Custos opcionais (depreciacao, manutencao, falha) exigem o recurso do plano so para LIGAR o que esta desligado.
+    /// Manter ligado o que ja esta (ex.: plano rebaixado) ou editar outros campos continua permitido.
+    /// </summary>
+    private async Task EnsureOptionalCostsAllowedAsync(
+        SavePrinterRequest request,
+        bool depreciationEnabled,
+        bool maintenanceEnabled,
+        bool failureEnabled,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        var turningOn = (request.DepreciationEnabled && !depreciationEnabled)
+            || (request.MaintenanceEnabled && !maintenanceEnabled)
+            || (request.FailureEnabled && !failureEnabled);
+
+        if (turningOn)
+            await _entitlementService.EnsureFeatureAsync(userId, PlanEntitlementKey.OptionalCostsEnabled, cancellationToken);
     }
 
     private async Task EnsureActiveModelAsync(Guid printerModelId, CancellationToken cancellationToken)

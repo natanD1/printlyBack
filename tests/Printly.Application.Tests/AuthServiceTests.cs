@@ -18,11 +18,12 @@ public class AuthServiceTests
         public FakeRefreshTokenRepository RefreshTokens { get; } = new();
         public FakeTokenService Tokens { get; } = new();
         public FakeTimeProvider Time { get; } = new();
+        public FakePlanRepository Plans { get; } = FakePlanRepository.WithDefaultPlan();
         public AuthService Service { get; }
 
         public Context()
         {
-            Service = new AuthService(Users, Invites, new FakePasswordHasher(), Tokens, RefreshTokens, new FakeUnitOfWork(), Time);
+            Service = new AuthService(Users, Invites, new FakePasswordHasher(), Tokens, RefreshTokens, Plans, new FakeUnitOfWork(), Time);
         }
 
         public InviteCode AddInvite(string code = "ABC123")
@@ -180,7 +181,7 @@ public class AuthServiceTests
     public async Task Login_ExistingUserWithWeakPassword_StillWorks()
     {
         var ctx = new Context();
-        ctx.Users.Items.Add(new User("Antigo", "old@b.com", "hash:123", Guid.NewGuid()));
+        ctx.Users.Items.Add(new User("Antigo", "old@b.com", "hash:123", Guid.NewGuid(), Guid.NewGuid()));
 
         var response = await ctx.Service.LoginAsync(new LoginRequest("old@b.com", "123"));
 

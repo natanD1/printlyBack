@@ -35,6 +35,9 @@ public class ProductRepository : IProductRepository
             .ToListAsync(cancellationToken);
     }
 
+    public Task<int> CountCreatedByUserIdAsync(Guid userId, DateTime from, DateTime to, CancellationToken cancellationToken = default) =>
+        _context.Products.CountAsync(p => p.UserId == userId && p.CreatedAt >= from && p.CreatedAt < to, cancellationToken);
+
     public async Task AddAsync(Product product, CancellationToken cancellationToken = default) =>
         await _context.Products.AddAsync(product, cancellationToken);
 
