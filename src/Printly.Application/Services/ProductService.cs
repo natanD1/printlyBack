@@ -351,7 +351,7 @@ public class ProductService : IProductService
             product.TotalFilament * product.PrintRuns,
             product.CostPrice,
             product.SalePrice,
-            product.SalePrice / product.Quantity,
+            product.UnitSalePrice,
             suggestedSalePrice,
             printer.Printer?.Id,
             printer.Name,

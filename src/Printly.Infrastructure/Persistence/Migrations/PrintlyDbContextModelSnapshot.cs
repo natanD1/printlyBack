@@ -563,6 +563,76 @@ namespace Printly.Infrastructure.Persistence.Migrations
                     b.ToTable("refresh_tokens", (string)null);
                 });
 
+            modelBuilder.Entity("Printly.Domain.Entities.Showcase", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsBlocked")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("varchar(60)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("showcases", (string)null);
+                });
+
+            modelBuilder.Entity("Printly.Domain.Entities.ShowcaseItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsVisible")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("ShowcaseId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("ShowcaseId", "ProductId")
+                        .IsUnique();
+
+                    b.ToTable("showcase_items", (string)null);
+                });
+
             modelBuilder.Entity("Printly.Domain.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -748,6 +818,30 @@ namespace Printly.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Printly.Domain.Entities.Showcase", b =>
+                {
+                    b.HasOne("Printly.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Printly.Domain.Entities.ShowcaseItem", b =>
+                {
+                    b.HasOne("Printly.Domain.Entities.Product", null)
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Printly.Domain.Entities.Showcase", null)
+                        .WithMany("Items")
+                        .HasForeignKey("ShowcaseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Printly.Domain.Entities.User", b =>
                 {
                     b.HasOne("Printly.Domain.Entities.Plan", null)
@@ -774,6 +868,11 @@ namespace Printly.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Printly.Domain.Entities.Product", b =>
                 {
                     b.Navigation("Filaments");
+                });
+
+            modelBuilder.Entity("Printly.Domain.Entities.Showcase", b =>
+                {
+                    b.Navigation("Items");
                 });
 #pragma warning restore 612, 618
         }

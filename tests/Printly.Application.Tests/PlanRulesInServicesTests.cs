@@ -326,7 +326,7 @@ public class PlanRulesInServicesTests
         var ctx = new PlanTestContext();
         var user = ctx.AddUser(ctx.AddPlan(Feature(PlanEntitlementKey.CompanyLogoInQuote, logoEnabled)));
         var repository = new CompanyRepository();
-        return (new CompanyProfileService(repository, ctx.Entitlements, new FakeUnitOfWork()), repository, user);
+        return (new CompanyProfileService(repository, ctx.Entitlements, ctx.Showcases, new FakeUnitOfWork()), repository, user);
     }
 
     [Fact]

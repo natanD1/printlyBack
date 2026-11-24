@@ -32,6 +32,12 @@ public class Product : BaseEntity
     /// </summary>
     public decimal PrintRuns => (decimal)Quantity / PiecesPerPrint;
 
+    /// <summary>Preco de venda de uma unidade (o <see cref="SalePrice"/> e do lote inteiro).</summary>
+    public decimal UnitSalePrice => CalculateUnitSalePrice(SalePrice, Quantity);
+
+    /// <summary>Fonte unica da conta do preco unitario (tambem usada nas projecoes da vitrine).</summary>
+    public static decimal CalculateUnitSalePrice(decimal salePrice, int quantity) => salePrice / quantity;
+
     protected Product()
     {
     }

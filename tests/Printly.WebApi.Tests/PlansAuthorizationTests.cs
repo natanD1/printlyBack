@@ -196,6 +196,10 @@ public sealed class PlansAuthorizationTests : IAsyncLifetime
     {
         public Task EnsureWithinLimitAsync(Guid userId, PlanEntitlementKey key, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
+        public Task EnsureWithinLimitAsync(Guid userId, PlanEntitlementKey key, int additional, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+        public Task<int?> GetLimitAsync(Guid userId, PlanEntitlementKey key, CancellationToken cancellationToken = default) => Task.FromResult<int?>(null);
+
         public Task EnsureFeatureAsync(Guid userId, PlanEntitlementKey key, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
         public Task<bool> IsFeatureEnabledAsync(Guid userId, PlanEntitlementKey key, CancellationToken cancellationToken = default) => Task.FromResult(true);

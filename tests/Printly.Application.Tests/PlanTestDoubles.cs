@@ -250,6 +250,10 @@ internal sealed class AllowAllEntitlementService : IEntitlementService
 {
     public Task EnsureWithinLimitAsync(Guid userId, PlanEntitlementKey key, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
+    public Task EnsureWithinLimitAsync(Guid userId, PlanEntitlementKey key, int additional, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+    public Task<int?> GetLimitAsync(Guid userId, PlanEntitlementKey key, CancellationToken cancellationToken = default) => Task.FromResult<int?>(null);
+
     public Task EnsureFeatureAsync(Guid userId, PlanEntitlementKey key, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
     public Task<bool> IsFeatureEnabledAsync(Guid userId, PlanEntitlementKey key, CancellationToken cancellationToken = default) => Task.FromResult(true);
@@ -276,13 +280,15 @@ internal sealed class PlanTestContext
     public FakeFilamentBrandRepository FilamentBrands { get; } = new();
     public FakeFilamentTypeRepository FilamentTypes { get; } = new();
     public FakeUserSettingsRepository Settings { get; } = new();
+    public FakeShowcaseRepository Showcases { get; }
     public FakeTimeProvider Time { get; } = new();
     public EntitlementService Entitlements { get; }
 
     public PlanTestContext()
     {
         Plans.Users = Users;
-        Entitlements = new EntitlementService(Users, Plans, Printers, Filaments, Products, Time);
+        Showcases = new FakeShowcaseRepository(Products);
+        Entitlements = new EntitlementService(Users, Plans, Printers, Filaments, Products, Showcases, Time);
     }
 
     public Plan AddPlan(params (PlanEntitlementKey Key, int? IntValue, bool? BoolValue)[] entitlements)

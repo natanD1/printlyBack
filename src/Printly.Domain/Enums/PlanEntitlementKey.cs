@@ -12,5 +12,7 @@ public enum PlanEntitlementKey
     ProductHistoryMonths,
     CompanyLogoInQuote,
     RemoveBrandingFooter,
-    OptionalCostsEnabled
+    OptionalCostsEnabled,
+    ShowcaseEnabled,
+    MaxShowcaseItems
 }

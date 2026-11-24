@@ -12,6 +12,15 @@ public interface IEntitlementService
     /// <summary>Bloqueia se o uso atual ja chegou ao limite (criar mais um ultrapassaria). Limite nulo/ausente = ilimitado.</summary>
     Task EnsureWithinLimitAsync(Guid userId, PlanEntitlementKey key, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Bloqueia se o uso atual + <paramref name="additional"/> passar do limite (acao que cria varios de uma vez).
+    /// <paramref name="additional"/> &lt;= 0 nao bloqueia.
+    /// </summary>
+    Task EnsureWithinLimitAsync(Guid userId, PlanEntitlementKey key, int additional, CancellationToken cancellationToken = default);
+
+    /// <summary>Limite efetivo de uma regra. Nulo = ilimitado (admin, valor nulo ou linha ausente no plano).</summary>
+    Task<int?> GetLimitAsync(Guid userId, PlanEntitlementKey key, CancellationToken cancellationToken = default);
+
     /// <summary>Bloqueia se o recurso esta desligado (ou ausente) no plano.</summary>
     Task EnsureFeatureAsync(Guid userId, PlanEntitlementKey key, CancellationToken cancellationToken = default);
 

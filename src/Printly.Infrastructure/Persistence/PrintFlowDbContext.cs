@@ -25,6 +25,8 @@ public class PrintlyDbContext : DbContext
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Plan> Plans => Set<Plan>();
     public DbSet<PlanEntitlement> PlanEntitlements => Set<PlanEntitlement>();
+    public DbSet<Showcase> Showcases => Set<Showcase>();
+    public DbSet<ShowcaseItem> ShowcaseItems => Set<ShowcaseItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
