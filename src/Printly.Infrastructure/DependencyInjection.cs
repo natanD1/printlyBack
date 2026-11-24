@@ -41,6 +41,7 @@ public static class DependencyInjection
         services.AddScoped<ICompanyProfileRepository, CompanyProfileRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IPlanRepository, PlanRepository>();
+        services.AddScoped<IShowcaseRepository, ShowcaseRepository>();
 
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<ITokenService, TokenService>();
@@ -60,6 +61,8 @@ public static class DependencyInjection
         services.AddScoped<IEntitlementService, EntitlementService>();
         services.AddScoped<IPlanService, PlanService>();
         services.AddScoped<IUserManagementService, UserManagementService>();
+        services.AddScoped<IShowcaseService, ShowcaseService>();
+        services.AddScoped<IPublicShowcaseService, PublicShowcaseService>();
 
         services.AddHostedService<InviteCodeExpirationService>();
         services.AddHostedService<RefreshTokenCleanupService>();

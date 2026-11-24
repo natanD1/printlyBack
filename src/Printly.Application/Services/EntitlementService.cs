@@ -14,6 +14,7 @@ public class EntitlementService : IEntitlementService
     private readonly IPrinterRepository _printerRepository;
     private readonly IFilamentRepository _filamentRepository;
     private readonly IProductRepository _productRepository;
+    private readonly IShowcaseRepository _showcaseRepository;
     private readonly TimeProvider _timeProvider;
 
     public EntitlementService(
@@ -22,6 +23,7 @@ public class EntitlementService : IEntitlementService
         IPrinterRepository printerRepository,
         IFilamentRepository filamentRepository,
         IProductRepository productRepository,
+        IShowcaseRepository showcaseRepository,
         TimeProvider timeProvider)
     {
         _userRepository = userRepository;
@@ -29,15 +31,22 @@ public class EntitlementService : IEntitlementService
         _printerRepository = printerRepository;
         _filamentRepository = filamentRepository;
         _productRepository = productRepository;
+        _showcaseRepository = showcaseRepository;
         _timeProvider = timeProvider;
     }
 
-    public async Task EnsureWithinLimitAsync(Guid userId, PlanEntitlementKey key, CancellationToken cancellationToken = default)
+    public Task EnsureWithinLimitAsync(Guid userId, PlanEntitlementKey key, CancellationToken cancellationToken = default) =>
+        EnsureWithinLimitAsync(userId, key, 1, cancellationToken);
+
+    public async Task EnsureWithinLimitAsync(Guid userId, PlanEntitlementKey key, int additional, CancellationToken cancellationToken = default)
     {
         var definition = PlanEntitlementCatalog.Get(key);
 
         if (definition.Type != PlanEntitlementType.Limit)
             throw new InvalidOperationException($"Regra de plano '{key}' nao e um limite.");
+
+        if (additional <= 0)
+            return;
 
         var (user, plan) = await LoadAsync(userId, cancellationToken);
 
@@ -50,14 +59,27 @@ public class EntitlementService : IEntitlementService
         var used = await CountUsageAsync(userId, key, cancellationToken)
             ?? throw new InvalidOperationException($"Regra de plano '{key}' nao tem contagem de uso.");
 
-        if (used < limit)
+        if (used + additional <= limit)
             return;
+
+        // "Ainda cabem" so quando a acao cria varios: criando um, o que sobra e sempre 0.
+        var remaining = additional > 1 ? $" Ainda cabem {Math.Max(0, limit - used)}." : string.Empty;
 
         var message = limit == 0
             ? $"Seu plano {plan.Name} nao permite cadastrar {definition.MessageUnitPlural}. Faca upgrade para liberar."
-            : $"Seu plano {plan.Name} permite ate {limit} {(limit == 1 ? definition.MessageUnitSingular : definition.MessageUnitPlural)}. Faca upgrade para cadastrar mais.";
+            : $"Seu plano {plan.Name} permite ate {limit} {(limit == 1 ? definition.MessageUnitSingular : definition.MessageUnitPlural)}.{remaining} Faca upgrade para cadastrar mais.";
 
         throw new PlanRestrictionException(PlanRestrictionException.PlanLimitReached, message);
+    }
+
+    public async Task<int?> GetLimitAsync(Guid userId, PlanEntitlementKey key, CancellationToken cancellationToken = default)
+    {
+        if (PlanEntitlementCatalog.Get(key).Type != PlanEntitlementType.Limit)
+            throw new InvalidOperationException($"Regra de plano '{key}' nao e um limite.");
+
+        var (user, plan) = await LoadAsync(userId, cancellationToken);
+
+        return user.IsAdmin ? null : GetLimit(plan, key);
     }
 
     public async Task EnsureFeatureAsync(Guid userId, PlanEntitlementKey key, CancellationToken cancellationToken = default)
@@ -139,6 +161,9 @@ public class EntitlementService : IEntitlementService
                 var now = _timeProvider.GetUtcNow();
                 return await _productRepository.CountCreatedByUserIdAsync(
                     userId, BrazilTime.MonthStartUtc(now), BrazilTime.MonthStartUtc(now, 1), cancellationToken);
+            case PlanEntitlementKey.MaxShowcaseItems:
+                // Conta o que aparece (ou apareceria) na vitrine publica: visivel e produzido.
+                return await _showcaseRepository.CountVisibleProducedItemsAsync(userId, cancellationToken);
             default:
                 return null;
         }

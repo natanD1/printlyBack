@@ -96,14 +96,14 @@ public static class PlanEntitlementCatalog
             zeroLabel: "Só o mês atual"),
         PlanEntitlementDefinition.Feature(
             PlanEntitlementKey.CompanyLogoInQuote,
-            "Logo da empresa no orçamento",
-            "Permite cadastrar o logo da empresa e usá-lo no PDF do orçamento.",
+            "Logo da empresa (orçamento e vitrine)",
+            "Permite cadastrar o logo da empresa e usá-lo no PDF do orçamento e na vitrine pública.",
             "Orçamento",
             "usar o logo da empresa no orcamento"),
         PlanEntitlementDefinition.Feature(
             PlanEntitlementKey.RemoveBrandingFooter,
-            "Remover rodapé \"Gerado com Printly\"",
-            "Gera o PDF do orçamento sem o rodapé do Printly.",
+            "Remover marca Printly (orçamento e vitrine)",
+            "Gera o PDF do orçamento sem o rodapé do Printly e esconde a marca Printly na vitrine pública.",
             "Orçamento",
             "remover o rodape do Printly no orcamento"),
         PlanEntitlementDefinition.Feature(
@@ -112,6 +112,21 @@ public static class PlanEntitlementCatalog
             "Permite ligar depreciação, manutenção e perda por falha nas impressoras.",
             "Impressoras",
             "ligar depreciacao, manutencao e perda por falha nas impressoras"),
+        PlanEntitlementDefinition.Feature(
+            PlanEntitlementKey.ShowcaseEnabled,
+            "Vitrine pública",
+            "Página pública com os produtos escolhidos, para compartilhar com clientes.",
+            "Vitrine",
+            "usar a vitrine"),
+        PlanEntitlementDefinition.Limit(
+            PlanEntitlementKey.MaxShowcaseItems,
+            "Produtos na vitrine",
+            "Máximo de produtos visíveis na vitrine pública.",
+            "Vitrine",
+            messageUnitSingular: "item na vitrine",
+            messageUnitPlural: "itens na vitrine",
+            unitSingular: "item na vitrine",
+            unitPlural: "itens na vitrine"),
     };
 
     private static readonly Dictionary<PlanEntitlementKey, PlanEntitlementDefinition> ByKey = All.ToDictionary(d => d.Key);

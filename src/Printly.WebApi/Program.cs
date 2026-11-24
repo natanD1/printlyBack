@@ -71,6 +71,9 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
+// Vitrine publica (anonima): limite por slug + global por IP so em /public/. Ver PublicShowcaseRateLimits.
+builder.Services.AddRateLimiter(PublicShowcaseRateLimits.Configure);
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -82,6 +85,10 @@ if (app.Environment.IsDevelopment())
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseHttpsRedirection();
+
+// Explicito: o rate limiter precisa do endpoint ja resolvido (politica por atributo e route value slug).
+app.UseRouting();
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
